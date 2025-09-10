@@ -44,7 +44,7 @@ All code submissions must follow the below rules:
 
 - **Do not make any attempts to damage, disrupt or otherwise sadden my system, escape the virtual environment, or interfere with the tournament backend.**
 - Generally, the standard library for your language is allowed. However, **your bot must not make any network connections, read or write files, or use built-in arbitrary execution functions** (e.g. Python's `exec()`). Sneaky ways of getting around this rule on a technicality will get you DQ'd. Don't do it. Thanks.
-- **Non-standard libraries and modules will not be accommodated,** outside of special exceptions (e.g. a language to add bindings for a Chess API implementation). You may reimplement them as part of your submission, however.
+- **Non-standard libraries and modules will not be accommodated,** outside of special exceptions (e.g. a library to add bindings for a Chess API implementation). You may reimplement them as part of your submission, however.
 - **Your source code submission must not exceed 1024 tokens.** Tokens for a language will be evaluated in the same way as the standard lexer distribution does. More details on how to calculate the token count of your source file can be found with the resources for your particular language.
 - **Bots should not expect to start from a new chess board state,** and should always play from the board provided by the API. Tournament rounds may pre-play an opening move series to avoid deterministic outcomes.
 
