@@ -33,16 +33,17 @@ I am partly willing to support more languages if they are easy to incorporate. F
 
 I welcome crowdsourced implementations of the Chess API for various languages, so long as they don't introduce anything more or less than the functionality specified in the [docs](API_LINK_HERE). If you are willing to share these implementations publicly, I will happily make them official (and thus not counted toward the token limit).
 ### Submission Format
-Your submission should be a single source file for your language of choice. Near the top of the file should be a comment containing the following:
+Your submission should be a single source code file for your language of choice. Near the top of the file should be a comment containing the following:
 
 - Author(s)
 - Bot name
 - (Optional) A description for your bot
-### Submission Rules
-All submissions must follow the below rules:
+### Code Guidelines
+All code submissions must follow the below rules:
 
 - Do not make any attempts to damage, disrupt or otherwise sadden my system, escape the virtual environment, or interfere with the tournament backend.
 - Generally, the standard library for your language is allowed. However, your bot must not make any network connections, read or write files, or use built-in arbitrary execution functions (e.g. Python's `exec()`). Sneaky ways of getting around this rule on a technicality will get you DQ'd. Don't do it. Thanks.
+- Non-standard libraries are not allowed will not be accommodated, outside of special exceptions (e.g. a language to add bindings for a Chess API implementation). Do not rely on them in your code.
 - Your source code submission must not exceed 1024 tokens. Tokens for a language will be evaluated in the same way as the standard lexer distribution does. More details on how to calculate the token count of your source file can be found with the resources for your particular language.
 - Bots should not expect to start from a new chess board state, and should always play from the board provided by the API. Tournament rounds may pre-play an opening move series to avoid deterministic outcomes.
 
