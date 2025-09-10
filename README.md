@@ -15,6 +15,7 @@ The tournament will be a round-robin tournament in which each bot faces each oth
 Once the tournament is complete, the results will be released.
 
 ## Submissions
+Please read this section carefully! It outlines what is available to your bot, and how to make a valid submission.
 ### Chess API
 A basic Chess API will be provided for supported languages, which acts as an interface to the chess game. This API will be readily accessible by your code. Some of its features are:
 
@@ -37,7 +38,7 @@ Your submission should be a single source code file for your language of choice.
 
 - Author(s)
 - Bot name
-- (Optional) A description for your bot
+- *(Optional)* A description for your bot
 ### Code Guidelines
 All code submissions must follow the below rules:
 
