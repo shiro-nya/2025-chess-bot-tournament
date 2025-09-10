@@ -8,7 +8,7 @@ If you have questions, or requests for language support, feel free to reach out 
 
 ## Contest Format
 ### Schedule
-Submissions will be accepted until DATE. Following this, valid submissions will be entered into a tournament to determine final chess bot rankings.
+Submissions will be accepted until November 1st @ 12:00AM EST. Following this, received valid submissions will be entered into a tournament to determine the final chess bot rankings.
 ### Tournament
 The tournament will be a round-robin tournament in which each bot faces each other bot a number of times. Bot players will have 5 minutes of time, no increment. Pre-moved openings may be used to avoid bots repeatedly playing the exact same games.
 ### Results
