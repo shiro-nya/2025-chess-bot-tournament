@@ -3,6 +3,7 @@ A challenge to write a tiny chess bot in one month! The challenge is open to all
 
 ## Disclaimer: I don't really know what I'm doing
 This is my first time hosting something like this, it's almost a certainty that I've forgotten some essential detail or that something needs clarification. I am happy to answer any questions regarding the format, rules, or give details on the development environment if needed. I will try to keep an up-to-date FAQ, as well as language-specific FAQs if necessary.
+
 If you have questions, or requests for language support, feel free to reach out to me on Discord: @shiro_nya
 
 ## Contest Format
@@ -16,34 +17,42 @@ Once the tournament is complete, the results will be released.
 ## Submissions
 ### Chess API
 A basic Chess API will be provided for supported languages, which acts as an interface to the chess game. This API will be readily accessible by your code. Some of its features are:
+
 - Primitives to represent Boards and Moves
 - Methods to get your remaining time
 - Methods for submitting moves
+
 The detailed docs can be found [here](API_LINK_HERE).
 ### Language Support
 The Chess API currently exists for the following languages:
+
 - C
 - Python 3.12
+
 I am partly willing to support more languages if they are easy to incorporate. Feel free reach out to me if you have a language you would like to request, but I won't make any guarantees.
+
 I welcome crowdsourced implementations of the Chess API for various languages, so long as they don't introduce anything more or less than the functionality specified in the [docs](API_LINK_HERE). If you are willing to share these implementations publicly, I will happily make them official (and thus not counted toward the token limit).
 ### Submission Format
-Your submission should be a single source file for your language of choice.
-Near the top of the file should be a comment containing the following:
+Your submission should be a single source file for your language of choice. Near the top of the file should be a comment containing the following:
+
 - Author(s)
 - Bot name
 - (Optional) A description for your bot
 ### Submission Rules
 All submissions must follow the below rules:
+
 - Do not make any attempts to damage, disrupt or otherwise sadden my system, escape the virtual environment, or interfere with the tournament backend.
 - Generally, the standard library for your language is allowed. However, your bot must not make any network connections, read or write files, or use built-in arbitrary execution functions (e.g. Python's `exec()`). Sneaky ways of getting around this rule on a technicality will get you DQ'd. Don't do it. Thanks.
 - Your source code submission must not exceed 1024 tokens. Tokens for a language will be evaluated in the same way as the standard lexer distribution does. More details on how to calculate the token count of your source file can be found with the resources for your particular language.
 - Bots should not expect to start from a new chess board state, and should always play from the board provided by the API. Tournament rounds may pre-play an opening move series to avoid deterministic outcomes.
+
 I reserve the right to remove any bots from the competition at my own discretion, but of course I don't intend to exercise this unless necessary.
 ### Target System
 The bots will be running in a virtual machine running 64-bit Lubuntu. You should expect to have 4GB of memory available for your bot. The VM host system has a Ryzen 7 5700X CPU, though I only supply two cores to the virtual machine. Not really sure how much this informs the performance, if you'd like any more details feel free to ask.
 
 ## Resources
 These are a handful of resources I thought might be helpful, in no particular order:
+
 - Chess API documentation:
 - Chess programming wiki, for more detailed info on chess bot techniques: https://www.chessprogramming.org/Main_Page
 - YouTube channel of Sebastian Lague, a large inspiration for putting this together: https://www.youtube.com/@SebastianLague
