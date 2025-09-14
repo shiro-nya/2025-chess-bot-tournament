@@ -72,8 +72,8 @@ bool chess_can_kingside_castle(Board *board, bool color);
 bool chess_can_queenside_castle(Board *board, bool color);
 
 // Returns one of the "Game end" constants for the given [board]
-// (i.e. whether it is in checkmate, stalemate or neither)
-// This is the same cost as calls to in_check(), in_draw(), etc., so if you play to check multiple you may wish to use this
+// (i.e. whether it is in checkmate, stalemate or neither if the game is ongoing)
+// This is about the same cost as calls to in_check(), in_draw(), etc., so if you plan to check multiple you may wish to use this
 int chess_is_game_ended(Board *board);
 
 // Returns the Zobrist hash that represents [board].
