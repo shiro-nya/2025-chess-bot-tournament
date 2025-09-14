@@ -6,21 +6,27 @@
 #include "bitboard.h"
 
 // Player color constants
-#define WHITE false
-#define BLACK true
+typedef enum {
+    WHITE,
+    BLACK
+} PlayerColor;
 
-// Piece constants
-#define PAWN 1
-#define BISHOP 2
-#define KNIGHT 3
-#define ROOK 4
-#define QUEEN 5
-#define KING 6
+// Piece type constants
+typedef enum {
+    PAWN = 1,
+    BISHOP,
+    KNIGHT,
+    ROOK,
+    QUEEN,
+    KING
+} PieceType;
 
-// Game end constants
-#define GAME_NORMAL 0
-#define GAME_CHECKMATE -1
-#define GAME_STALEMATE 1
+// Game play state constants
+typedef enum {
+    GAME_CHECKMATE = -1,
+    GAME_NORMAL,
+    GAME_STALEMATE
+} GameState;
 
 // The Board struct represents a single chess game
 typedef struct Board Board;
@@ -34,6 +40,9 @@ typedef struct {
     bool castle;        // True if this move is castling
 } Move;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 ///// BOARD-RELATED FUNCTIONS /////
 
@@ -66,15 +75,15 @@ bool chess_in_checkmate(Board *board);
 bool chess_in_draw(Board *board);
 
 // Returns true if [color] can castle kingside, where color is one of the Player color constants
-bool chess_can_kingside_castle(Board *board, bool color);
+bool chess_can_kingside_castle(Board *board, PlayerColor color);
 
 // Returns true if [color] can castle queenside, where color is one of the Player color constants
-bool chess_can_queenside_castle(Board *board, bool color);
+bool chess_can_queenside_castle(Board *board, PlayerColor color);
 
 // Returns one of the "Game end" constants for the given [board]
 // (i.e. whether it is in checkmate, stalemate or neither if the game is ongoing)
 // This is about the same cost as calls to in_check(), in_draw(), etc., so if you plan to check multiple you may wish to use this
-int chess_is_game_ended(Board *board);
+GameState chess_is_game_ended(Board *board);
 
 // Returns the Zobrist hash that represents [board].
 uint64_t chess_zobrist_key(Board *board);
@@ -90,7 +99,7 @@ void chess_free_board(Board *board);
 
 // Returns the BitBoard for the given [color] and [piece_type] from [board].
 // For more info on working with BitBoards, see "bitboard.h"
-BitBoard chess_get_bitboard(Board *board, int color, int piece_type);
+BitBoard chess_get_bitboard(Board *board, PlayerColor color, PieceType piece_type);
 
 
 ///// MOVE SUBMISSION /////
@@ -118,3 +127,7 @@ long chess_get_opponent_time_millis();
 
 // Returns how much time has elapsed this turn, in ms
 long chess_get_elapsed_time_millis();
+
+#ifdef __cplusplus
+}
+#endif

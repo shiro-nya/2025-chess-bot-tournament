@@ -1610,7 +1610,7 @@ bool chess_is_white_turn(Board *board) {
     return is_white_turn(board);
 }
 
-int chess_is_game_ended(Board *board) {
+GameState chess_is_game_ended(Board *board) {
     return get_board_end_state(board);
 }
 
@@ -1658,7 +1658,7 @@ void chess_done() {
     interface_done();
 }
 
-BitBoard chess_get_bitboard(Board *board, int color, int piece_type) {
+BitBoard chess_get_bitboard(Board *board, PlayerColor color, PieceType piece_type) {
     switch(piece_type) {
         case PAWN: return ((color == WHITE) ? board->bb_white_pawn : board->bb_black_pawn);
         case ROOK: return ((color == WHITE) ? board->bb_white_rook : board->bb_black_rook);
@@ -1700,10 +1700,10 @@ bool chess_in_draw(Board *board) {
     return !in_check(board, board->whiteToMove);
 }
 
-bool chess_can_kingside_castle(Board *board, bool color) {
+bool chess_can_kingside_castle(Board *board, PlayerColor color) {
     return (color == BLACK) ? board->can_castle_bk : board->can_castle_wk;
 }
 
-bool chess_can_queenside_castle(Board *board, bool color) {
+bool chess_can_queenside_castle(Board *board, PlayerColor color) {
     return (color == BLACK) ? board->can_castle_bq : board->can_castle_wq;
 }
