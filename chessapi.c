@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <semaphore.h>
+#include <time.h>
 
 #define CHESS_BOT_NAME "LoserBot"
 #define BOT_AUTHOR_NAME "shiro__nya"
@@ -33,6 +34,7 @@ typedef struct {
     Board *shared_board;
     long wtime;
     long btime;
+    clock_t turn_started_time;
     Move latest_move;
     pthread_mutex_t mutex;
     sem_t intermission_mutex;
@@ -64,9 +66,15 @@ struct Board {
     bool can_castle_wk;
     int halfmoves;
     int fullmoves;
+    uint64_t hash;
 };
 
 InternalAPI *API = NULL;
+unsigned long zobrist_keys[781];
+
+uint64_t rand_long() {
+    return ((uint64_t) rand()) ^ (((uint64_t) rand()) << 16) ^ (((uint64_t) rand()) << 32) ^ (((uint64_t) rand()) << 48);
+}
 
 int highest_bit(BitBoard v) {
     const unsigned long b[] = {0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000, 0xFFFFFFFF00000000};
@@ -82,6 +90,29 @@ int highest_bit(BitBoard v) {
         } 
     }
     return (int)r;
+}
+
+// Returns true if the boards are equal.
+bool board_equals(Board *board1, Board *board2) {
+    return (board1->hash == board2->hash)
+        && (board1->whiteToMove == board2->whiteToMove)
+        && (board1->bb_white_pawn == board2->bb_white_pawn)
+        && (board1->bb_black_pawn == board2->bb_black_pawn)
+        && (board1->bb_white_queen == board2->bb_white_queen)
+        && (board1->bb_black_queen == board2->bb_black_queen)
+        && (board1->bb_white_knight == board2->bb_white_knight)
+        && (board1->bb_black_knight == board2->bb_black_knight)
+        && (board1->bb_white_bishop == board2->bb_white_bishop)
+        && (board1->bb_black_bishop == board2->bb_black_bishop)
+        && (board1->bb_white_rook == board2->bb_white_rook)
+        && (board1->bb_black_rook == board2->bb_black_rook)
+        && (board1->bb_white_king == board2->bb_white_king)
+        && (board1->bb_black_king == board2->bb_black_king)
+        && (board1->can_castle_bk == board2->can_castle_bk)
+        && (board1->can_castle_bq == board2->can_castle_bq)
+        && (board1->can_castle_wk == board2->can_castle_wk)
+        && (board1->can_castle_wq == board2->can_castle_wq)
+        && (board1->en_passant_target == board2->en_passant_target);
 }
 
 // creates a Move from a [movestr] in standard game notation and returns it
@@ -170,6 +201,56 @@ void set_board_from(Board *dest, Board *src) {
     dest->bb_white_pawn = src->bb_white_pawn;
 }
 
+// Set the Zobrist hash for [board] from its current position
+void calc_zobrist(Board *board) {
+    uint64_t hash = 0;
+    BitBoard board0 = board->bb_black_pawn;
+    BitBoard board1 = board->bb_black_rook;
+    BitBoard board2 = board->bb_black_bishop;
+    BitBoard board3 = board->bb_black_queen;
+    BitBoard board4 = board->bb_black_king;
+    BitBoard board5 = board->bb_black_knight;
+    BitBoard board6 = board->bb_white_pawn;
+    BitBoard board7 = board->bb_white_rook;
+    BitBoard board8 = board->bb_white_bishop;
+    BitBoard board9 = board->bb_white_queen;
+    BitBoard board10 = board->bb_white_king;
+    BitBoard board11 = board->bb_white_knight;
+    for (int i = 0; i < 64; i++) {
+        hash ^= (board0 & 1) * zobrist_keys[0*64 + i];
+        hash ^= (board1 & 1) * zobrist_keys[1*64 + i];
+        hash ^= (board2 & 1) * zobrist_keys[2*64 + i];
+        hash ^= (board3 & 1) * zobrist_keys[3*64 + i];
+        hash ^= (board4 & 1) * zobrist_keys[4*64 + i];
+        hash ^= (board5 & 1) * zobrist_keys[5*64 + i];
+        hash ^= (board6 & 1) * zobrist_keys[6*64 + i];
+        hash ^= (board7 & 1) * zobrist_keys[7*64 + i];
+        hash ^= (board8 & 1) * zobrist_keys[8*64 + i];
+        hash ^= (board9 & 1) * zobrist_keys[9*64 + i];
+        hash ^= (board10 & 1) * zobrist_keys[10*64 + i];
+        hash ^= (board11 & 1) * zobrist_keys[11*64 + i];
+        board0 >>= 1;
+        board1 >>= 1;
+        board2 >>= 1;
+        board3 >>= 1;
+        board4 >>= 1;
+        board5 >>= 1;
+        board6 >>= 1;
+        board7 >>= 1;
+        board8 >>= 1;
+        board9 >>= 1;
+        board10 >>= 1;
+        board11 >>= 1;
+    }
+    if (board->can_castle_bk) hash ^= zobrist_keys[768];
+    if (board->can_castle_bq) hash ^= zobrist_keys[769];
+    if (board->can_castle_wk) hash ^= zobrist_keys[770];
+    if (board->can_castle_wq) hash ^= zobrist_keys[771];
+    if (board->whiteToMove) hash ^= zobrist_keys[772];
+    if (board->en_passant_target != 0) hash ^= zobrist_keys[773 + (highest_bit(board->en_passant_target) % 8)];
+    board->hash = hash;
+}
+
 // Clears all piece bitboards for the [board], and clears the pseudo-legal move caches.
 void clear_board(Board *board) {
     board->bb_black_bishop = 0;
@@ -192,6 +273,7 @@ void clear_board(Board *board) {
         free(board->bb_white_moves);
         board->bb_white_moves = 0;
     }
+    calc_zobrist(board);
 }
 
 void set_board_from_fen(Board *board, char *fen) {
@@ -276,6 +358,7 @@ void set_board_from_fen(Board *board, char *fen) {
         use_fen++;
     }
     board->fullmoves = fullmoves;
+    calc_zobrist(board);
 }
 
 // Makes a new, blank board. Caller responsible for freeing.
@@ -305,7 +388,6 @@ Board *clone_board(Board * board) {
     return new_board;
 }
 
-// TODO: does castling work
 // Updates the [board] with the result of the given [move].
 // The previous board can be restored with undo_move().
 // Moves are presumed legal.
@@ -313,8 +395,12 @@ void make_move(Board *board, Move move) {
     Board *saved_board = clone_board(board);
     saved_board->last_board = board->last_board;
     board->last_board = saved_board;
+    int from = highest_bit(move.from);
+    int to = highest_bit(move.to);
+    uint8_t hash = board->hash;
     board->halfmoves++;
     BitBoard flip_pieces = move.to | move.from;
+    hash ^= highest_bit(board->en_passant_target) % 8; // xor out the old en passant hash
     board->en_passant_target = 0;
     bool do_promotion = false;
     if (move.from & (board->bb_black_pawn | board->bb_white_pawn)) {
@@ -322,58 +408,79 @@ void make_move(Board *board, Move move) {
         // set en passant target if double pawn move
         if ((move.to & bb_slide_s(bb_slide_s(move.from))) > 0) {
             board->en_passant_target = bb_slide_s(move.from);
+            hash ^= highest_bit(board->en_passant_target) % 8;  // xor in new en passant hash
         } else if ((move.to & bb_slide_n(bb_slide_n(move.from))) > 0) {
             board->en_passant_target = bb_slide_n(move.from);
+            hash ^= highest_bit(board->en_passant_target) % 8;  // xor in new en passant hash
         } else if (move.to & 0xff000000000000fful) {
             do_promotion = true;
         }
     }
     if (move.from & board->bb_white_king) {
+        if (board->can_castle_wk) hash ^= zobrist_keys[770];
+        if (board->can_castle_wq) hash ^= zobrist_keys[771];
         board->can_castle_wk = false;
         board->can_castle_wq = false;
-    }
-    if (move.from & board->bb_black_king) {
+    } else if (move.from & board->bb_black_king) {
+        if (board->can_castle_bk) hash ^= zobrist_keys[768];
+        if (board->can_castle_bq) hash ^= zobrist_keys[769];
         board->can_castle_bk = false;
         board->can_castle_bq = false;
-    }
-    if (move.from & 0x0000000000000001ul) {
+    } else if (move.from & 0x0000000000000001ul) {
+        if (board->can_castle_wq) hash ^= zobrist_keys[771];
         board->can_castle_wq = false;
-    }
-    if (move.from & 0x0000000000000080ul) {
+    } else if (move.from & 0x0000000000000080ul) {
+        if (board->can_castle_wk) hash ^= zobrist_keys[770];
         board->can_castle_wk = false;
-    }
-    if (move.from & 0x0100000000000001ul) {
+    } else if (move.from & 0x0100000000000000ul) {
+        if (board->can_castle_bq) hash ^= zobrist_keys[769];
         board->can_castle_bq = false;
-    }
-    if (move.from & 0x8000000000000001ul) {
+    } else if (move.from & 0x8000000000000000ul) {
+        if (board->can_castle_bk) hash ^= zobrist_keys[768];
         board->can_castle_bk = false;
     }
     if (move.castle) {
         if ((move.from & board->bb_white_king) > 0 && (move.to > move.from)) {
             // white castle kingside
+            hash ^= zobrist_keys[64*10+4]^zobrist_keys[64*10+6]^zobrist_keys[64*7+7]^zobrist_keys[64*7+5];
+            if (board->can_castle_wk) hash ^= zobrist_keys[770];
+            if (board->can_castle_wq) hash ^= zobrist_keys[771];
             board->bb_white_king ^= 80ul;
             board->bb_white_rook ^= 160ul;
             board->can_castle_wk = false;
             board->can_castle_wq = false;
         } else if ((move.from & board->bb_white_king) > 0 && (move.to < move.from)) {
             // white castle queenside
+            hash ^= zobrist_keys[64*10+4]^zobrist_keys[64*10+2]^zobrist_keys[64*7+0]^zobrist_keys[64*7+3];
+            if (board->can_castle_wk) hash ^= zobrist_keys[770];
+            if (board->can_castle_wq) hash ^= zobrist_keys[771];
             board->bb_white_king ^= 20ul;
             board->bb_white_rook ^= 9ul;
             board->can_castle_wk = false;
             board->can_castle_wq = false;
         } else if ((move.from & board->bb_black_king) > 0 && (move.to > move.from)) {
             // black castle kingside
+            hash ^= zobrist_keys[64*10+56+4]^zobrist_keys[64*10+56+6]^zobrist_keys[64*7+56+7]^zobrist_keys[64*7+56+5];
+            if (board->can_castle_bk) hash ^= zobrist_keys[768];
+            if (board->can_castle_bq) hash ^= zobrist_keys[769];
             board->bb_black_king ^= 5764607523034234880ul;
             board->bb_black_rook ^= 11529215046068469760ul;
             board->can_castle_bk = false;
             board->can_castle_bq = false;
         } else if ((move.from & board->bb_black_king) > 0 && (move.to < move.from)) {
             // black castle queenside
+            hash ^= zobrist_keys[64*10+56+4]^zobrist_keys[64*10+56+2]^zobrist_keys[64*7+56+0]^zobrist_keys[64*7+56+3];
+            if (board->can_castle_bk) hash ^= zobrist_keys[768];
+            if (board->can_castle_bq) hash ^= zobrist_keys[769];
             board->bb_black_king ^= 1441151880758558720ul;
             board->bb_black_rook ^= 648518346341351424ul;
             board->can_castle_bk = false;
             board->can_castle_bq = false;
         }
+        if (!board->whiteToMove) {
+            board->fullmoves++;
+        }
+        board->whiteToMove = !board->whiteToMove;
         return;
     }
     if (move.capture) {
@@ -403,6 +510,21 @@ void make_move(Board *board, Move move) {
         board->bb_white_king &= cap_mask;
         board->bb_white_knight &= cap_mask;
         board->bb_white_pawn &= cap_mask;
+        // update hash for captured piece
+        BitBoard inv_cap_mask = ~cap_mask;
+        int cap_at = highest_bit(inv_cap_mask);
+        hash ^= ((board->bb_black_pawn & inv_cap_mask) > 0) * (zobrist_keys[64*0 + cap_at]);
+        hash ^= ((board->bb_black_rook & inv_cap_mask) > 0) * (zobrist_keys[64*1 + cap_at]);
+        hash ^= ((board->bb_black_bishop & inv_cap_mask) > 0) * (zobrist_keys[64*2 + cap_at]);
+        hash ^= ((board->bb_black_queen & inv_cap_mask) > 0) * (zobrist_keys[64*3 + cap_at]);
+        hash ^= ((board->bb_black_king & inv_cap_mask) > 0) * (zobrist_keys[64*4 + cap_at]);
+        hash ^= ((board->bb_black_knight & inv_cap_mask) > 0) * (zobrist_keys[64*5 + cap_at]);
+        hash ^= ((board->bb_white_pawn & inv_cap_mask) > 0) * (zobrist_keys[64*6 + cap_at]);
+        hash ^= ((board->bb_white_rook & inv_cap_mask) > 0) * (zobrist_keys[64*7 + cap_at]);
+        hash ^= ((board->bb_white_bishop & inv_cap_mask) > 0) * (zobrist_keys[64*8 + cap_at]);
+        hash ^= ((board->bb_white_queen & inv_cap_mask) > 0) * (zobrist_keys[64*9 + cap_at]);
+        hash ^= ((board->bb_white_king & inv_cap_mask) > 0) * (zobrist_keys[64*10 + cap_at]);
+        hash ^= ((board->bb_white_knight & inv_cap_mask) > 0) * (zobrist_keys[64*11 + cap_at]);
     }
     // remove old moved piece
     board->bb_black_bishop ^= ((board->bb_black_bishop & move.from) > 0) * flip_pieces;
@@ -417,23 +539,44 @@ void make_move(Board *board, Move move) {
     board->bb_white_king ^= ((board->bb_white_king & move.from) > 0) * flip_pieces;
     board->bb_white_knight ^= ((board->bb_white_knight & move.from) > 0) * flip_pieces;
     board->bb_white_pawn ^= ((board->bb_white_pawn & move.from) > 0) * flip_pieces;
+    // update hash for moved piece
+    hash ^= ((board->bb_black_pawn & move.from) > 0) * (zobrist_keys[64*0 + from] ^ zobrist_keys[64*0 + to]);
+    hash ^= ((board->bb_black_rook & move.from) > 0) * (zobrist_keys[64*1 + from] ^ zobrist_keys[64*1 + to]);
+    hash ^= ((board->bb_black_bishop & move.from) > 0) * (zobrist_keys[64*2 + from] ^ zobrist_keys[64*2 + to]);
+    hash ^= ((board->bb_black_queen & move.from) > 0) * (zobrist_keys[64*3 + from] ^ zobrist_keys[64*3 + to]);
+    hash ^= ((board->bb_black_king & move.from) > 0) * (zobrist_keys[64*4 + from] ^ zobrist_keys[64*4 + to]);
+    hash ^= ((board->bb_black_knight & move.from) > 0) * (zobrist_keys[64*5 + from] ^ zobrist_keys[64*5 + to]);
+    hash ^= ((board->bb_white_pawn & move.from) > 0) * (zobrist_keys[64*6 + from] ^ zobrist_keys[64*6 + to]);
+    hash ^= ((board->bb_white_rook & move.from) > 0) * (zobrist_keys[64*7 + from] ^ zobrist_keys[64*7 + to]);
+    hash ^= ((board->bb_white_bishop & move.from) > 0) * (zobrist_keys[64*8 + from] ^ zobrist_keys[64*8 + to]);
+    hash ^= ((board->bb_white_queen & move.from) > 0) * (zobrist_keys[64*9 + from] ^ zobrist_keys[64*9 + to]);
+    hash ^= ((board->bb_white_king & move.from) > 0) * (zobrist_keys[64*10 + from] ^ zobrist_keys[64*10 + to]);
+    hash ^= ((board->bb_white_knight & move.from) > 0) * (zobrist_keys[64*11 + from] ^ zobrist_keys[64*11 + to]);
     if (do_promotion) {
         switch (move.promotion) {
             case BISHOP:
                 board->bb_white_bishop |= (move.to & board->bb_white_pawn);
                 board->bb_black_bishop |= (move.to & board->bb_black_pawn);
+                hash ^= (move.to & board->bb_white_pawn)*(zobrist_keys[64*8+to]+zobrist_keys[64*6+to]);
+                hash ^= (move.to & board->bb_black_pawn)*(zobrist_keys[64*2+to]+zobrist_keys[64*0+to]);
                 break;
             case ROOK:
                 board->bb_white_rook |= (move.to & board->bb_white_pawn);
                 board->bb_black_rook |= (move.to & board->bb_black_pawn);
+                hash ^= (move.to & board->bb_white_pawn)*(zobrist_keys[64*7+to]+zobrist_keys[64*6+to]);
+                hash ^= (move.to & board->bb_black_pawn)*(zobrist_keys[64*1+to]+zobrist_keys[64*0+to]);
                 break;
             case KNIGHT:
                 board->bb_white_knight |= (move.to & board->bb_white_pawn);
                 board->bb_black_knight |= (move.to & board->bb_black_pawn);
+                hash ^= (move.to & board->bb_white_pawn)*(zobrist_keys[64*11+to]+zobrist_keys[64*6+to]);
+                hash ^= (move.to & board->bb_black_pawn)*(zobrist_keys[64*5+to]+zobrist_keys[64*0+to]);
                 break;
             case QUEEN:
                 board->bb_white_queen |= (move.to & board->bb_white_pawn);
                 board->bb_black_queen |= (move.to & board->bb_black_pawn);
+                hash ^= (move.to & board->bb_white_pawn)*(zobrist_keys[64*9+to]+zobrist_keys[64*6+to]);
+                hash ^= (move.to & board->bb_black_pawn)*(zobrist_keys[64*3+to]+zobrist_keys[64*0+to]);
                 break;
         }
         board->bb_white_pawn &= ~move.to;
@@ -443,6 +586,8 @@ void make_move(Board *board, Move move) {
         board->fullmoves++;
     }
     board->whiteToMove = !board->whiteToMove;
+    hash ^= zobrist_keys[772];  // update color-to-play hash
+    board->hash = hash;  // commit hash
 }
 
 // Restores the previous board state for [board] if it exists.
@@ -504,12 +649,15 @@ void *uci_process(void *arg) {
                 if (!strcmp(token, "fen")) {
                     char fenstring[256];
                     char *next_token = fenstring;
-                    while (token = strtok(NULL, " "), !strcmp(token, "moves")) {
+                    token = strtok(NULL, " ");
+                    while (token && strcmp(token, "moves")) {
                         if (next_token > fenstring + 256) {
                             pthread_exit(NULL);
                         }
                         strcpy(next_token, token);
                         next_token += strlen(token) + 1;
+                        token = strtok(NULL, " ");
+                        if (token != NULL) *(next_token - 1) = ' ';
                     }
                     if (API->shared_board != NULL) free_board(API->shared_board);
                     API->shared_board = create_board();
@@ -530,27 +678,24 @@ void *uci_process(void *arg) {
                 }
                 pthread_mutex_unlock(&API->mutex);
             } else if (!strcmp(token, "go")) {
+                pthread_mutex_lock(&API->mutex);
                 token = strtok(NULL, " ");
                 while (token != NULL) {
                     if (!strcmp(token, "wtime")) {
                         char *rawtime = strtok(NULL, " ");
-                        pthread_mutex_lock(&API->mutex);
                         API->wtime = strtol(rawtime, NULL, 10);
-                        pthread_mutex_unlock(&API->mutex);
                     } else if (!strcmp(token, "btime")) {
                         char *rawtime = strtok(NULL, " ");
-                        pthread_mutex_lock(&API->mutex);
                         API->btime = strtol(rawtime, NULL, 10);
-                        pthread_mutex_unlock(&API->mutex);
                     } else if (!strcmp(token, "infinite")) {
-                        pthread_mutex_lock(&API->mutex);
                         API->btime = (long)1<<31;
                         API->wtime = (long)1<<31;
-                        pthread_mutex_unlock(&API->mutex);
                     }
                     token = strtok(NULL, " ");
                 }
                 sem_post(&API->intermission_mutex);
+                API->turn_started_time = clock();
+                pthread_mutex_unlock(&API->mutex);
             } else if (!strcmp(token, "stop")) {
                 // does nothing for now
             } else if (!strcmp(token, "quit")) {
@@ -614,6 +759,20 @@ Board *interface_get_board() {
 long interface_get_time_millis() {
     pthread_mutex_lock(&API->mutex);
     long millis = API->shared_board->whiteToMove ? API->wtime : API->btime;
+    pthread_mutex_unlock(&API->mutex);
+    return millis;
+}
+
+long interface_get_opponent_time_millis() {
+    pthread_mutex_lock(&API->mutex);
+    long millis = API->shared_board->whiteToMove ? API->btime : API->wtime;
+    pthread_mutex_unlock(&API->mutex);
+    return millis;
+}
+
+long interface_get_elapsed_time_millis() {
+    pthread_mutex_lock(&API->mutex);
+    long millis = (clock() - API->turn_started_time) / (CLOCKS_PER_SEC / 1000);
     pthread_mutex_unlock(&API->mutex);
     return millis;
 }
@@ -863,7 +1022,7 @@ BitBoard *get_pseudo_legal_moves(Board *board, bool white, bool all_attacked, Bi
 
 // Returns true if the king is in check on [board]. Checks this for white if [white], otherwise checks for black.
 bool in_check(Board *board, bool white) {
-    BitBoard *moves = get_pseudo_legal_moves(board, !white, false, 0);
+    BitBoard *moves = get_pseudo_legal_moves(board, !white, true, 0);
     BitBoard king_square = white ? board->bb_white_king : board->bb_black_king;
     for (int dir = 0; dir < 16; dir++) {
         if ((moves[dir] & king_square) > 0) return true;
@@ -907,7 +1066,7 @@ BitBoard en_passant_valid(Board *board, bool white) {
 // Returns squares on [board] which, if in single check, moving to would eliminate the check against white's king if [defenderWhite], black otherwise.
 // Only valid if single check situation
 BitBoard single_check_block_tiles(Board *board, bool defenderWhite) {
-    BitBoard *moves = get_pseudo_legal_moves(board, !defenderWhite, false, 0);
+    BitBoard *moves = get_pseudo_legal_moves(board, !defenderWhite, true, 0);
     BitBoard all_pieces_white = board->bb_white_bishop | board->bb_white_king
         | board->bb_white_knight | board->bb_white_pawn | board->bb_white_queen
         | board->bb_white_rook;
@@ -919,8 +1078,9 @@ BitBoard single_check_block_tiles(Board *board, bool defenderWhite) {
     BitBoard (*flood[])(BitBoard board, BitBoard empty, bool captures) = {&bb_flood_n, &bb_flood_ne, &bb_flood_e, &bb_flood_se, &bb_flood_s, &bb_flood_sw, &bb_flood_w, &bb_flood_nw};
     for (int dir = 0; dir < 8; dir++) {
         if ((moves[dir] & king_square) > 0) {
+            //printf("check is from dir %d\n", dir);
             free(moves);
-            return (*flood[dir])(king_square, all_pieces, true);
+            return (*flood[(dir + 4) % 8])(king_square, ~all_pieces, true);
         }
     }
     // if we didn't find it, it's a knight
@@ -953,7 +1113,6 @@ Move *add_to_moves(Move *moves, size_t *len_moves, size_t *maxlen_moves, Move mo
     return moves;
 }
 
-// TODO: ensure check validation is working, for all piece but in particular for knights
 // Returns the fully legal moves on [board].
 // Caller responsible for freeing array.
 Move *get_legal_moves(Board *board, int *len) {
@@ -1192,6 +1351,7 @@ Move *get_legal_moves(Board *board, int *len) {
             }
         }
         if (pseudo_moves[DIR_NNE] & piecepos) {
+            add_move.from = bb_slide_s(bb_slide_s(bb_slide_w(piecepos)));
             bool moving_king = (add_move.from & my_king) > 0;
             bool moving_pawn = (my_pawns & add_move.from) > 0;
             bool move_valid = (add_move.from & pins) == 0;  // not moving pinned piece
@@ -1199,13 +1359,13 @@ Move *get_legal_moves(Board *board, int *len) {
             move_valid &= ((all_opp_attacked & piecepos) == 0 || !moving_king);  // if moving king, not to attacked square
             move_valid &= (((check_attacks & piecepos) > 0 || moving_king) || !check); // single check allows king move, taking checking piece, blocking
             if (move_valid) {
-                add_move.from = bb_slide_s(bb_slide_s(bb_slide_w(piecepos)));
                 add_move.capture = (piecepos & opp_pieces) > 0;
                 add_move.promotion = 0;
                 moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
             }
         }
         if (pseudo_moves[DIR_NEE] & piecepos) {
+            add_move.from = bb_slide_s(bb_slide_w(bb_slide_w(piecepos)));
             bool moving_king = (add_move.from & my_king) > 0;
             bool moving_pawn = (my_pawns & add_move.from) > 0;
             bool move_valid = (add_move.from & pins) == 0;  // not moving pinned piece
@@ -1213,13 +1373,13 @@ Move *get_legal_moves(Board *board, int *len) {
             move_valid &= ((all_opp_attacked & piecepos) == 0 || !moving_king);  // if moving king, not to attacked square
             move_valid &= (((check_attacks & piecepos) > 0 || moving_king) || !check); // single check allows king move, taking checking piece, blocking
             if (move_valid) {
-                add_move.from = bb_slide_s(bb_slide_w(bb_slide_w(piecepos)));
                 add_move.capture = (piecepos & opp_pieces) > 0;
                 add_move.promotion = 0;
                 moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
             }
         }
         if (pseudo_moves[DIR_NNW] & piecepos) {
+            add_move.from = bb_slide_s(bb_slide_s(bb_slide_e(piecepos)));
             bool moving_king = (add_move.from & my_king) > 0;
             bool moving_pawn = (my_pawns & add_move.from) > 0;
             bool move_valid = (add_move.from & pins) == 0;  // not moving pinned piece
@@ -1227,13 +1387,13 @@ Move *get_legal_moves(Board *board, int *len) {
             move_valid &= ((all_opp_attacked & piecepos) == 0 || !moving_king);  // if moving king, not to attacked square
             move_valid &= (((check_attacks & piecepos) > 0 || moving_king) || !check); // single check allows king move, taking checking piece, blocking
             if (move_valid) {
-                add_move.from = bb_slide_s(bb_slide_s(bb_slide_e(piecepos)));
                 add_move.capture = (piecepos & opp_pieces) > 0;
                 add_move.promotion = 0;
                 moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
             }
         }
         if (pseudo_moves[DIR_NWW] & piecepos) {
+            add_move.from = bb_slide_s(bb_slide_e(bb_slide_e(piecepos)));
             bool moving_king = (add_move.from & my_king) > 0;
             bool moving_pawn = (my_pawns & add_move.from) > 0;
             bool move_valid = (add_move.from & pins) == 0;  // not moving pinned piece
@@ -1241,13 +1401,13 @@ Move *get_legal_moves(Board *board, int *len) {
             move_valid &= ((all_opp_attacked & piecepos) == 0 || !moving_king);  // if moving king, not to attacked square
             move_valid &= (((check_attacks & piecepos) > 0 || moving_king) || !check); // single check allows king move, taking checking piece, blocking
             if (move_valid) {
-                add_move.from = bb_slide_s(bb_slide_e(bb_slide_e(piecepos)));
                 add_move.capture = (piecepos & opp_pieces) > 0;
                 add_move.promotion = 0;
                 moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
             }
         }
         if (pseudo_moves[DIR_SSE] & piecepos) {
+            add_move.from = bb_slide_n(bb_slide_n(bb_slide_w(piecepos)));
             bool moving_king = (add_move.from & my_king) > 0;
             bool moving_pawn = (my_pawns & add_move.from) > 0;
             bool move_valid = (add_move.from & pins) == 0;  // not moving pinned piece
@@ -1255,13 +1415,13 @@ Move *get_legal_moves(Board *board, int *len) {
             move_valid &= ((all_opp_attacked & piecepos) == 0 || !moving_king);  // if moving king, not to attacked square
             move_valid &= (((check_attacks & piecepos) > 0 || moving_king) || !check); // single check allows king move, taking checking piece, blocking
             if (move_valid) {
-                add_move.from = bb_slide_n(bb_slide_n(bb_slide_w(piecepos)));
                 add_move.capture = (piecepos & opp_pieces) > 0;
                 add_move.promotion = 0;
                 moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
             }
         }
         if (pseudo_moves[DIR_SEE] & piecepos) {
+            add_move.from = bb_slide_n(bb_slide_w(bb_slide_w(piecepos)));
             bool moving_king = (add_move.from & my_king) > 0;
             bool moving_pawn = (my_pawns & add_move.from) > 0;
             bool move_valid = (add_move.from & pins) == 0;  // not moving pinned piece
@@ -1269,13 +1429,13 @@ Move *get_legal_moves(Board *board, int *len) {
             move_valid &= ((all_opp_attacked & piecepos) == 0 || !moving_king);  // if moving king, not to attacked square
             move_valid &= (((check_attacks & piecepos) > 0 || moving_king) || !check); // single check allows king move, taking checking piece, blocking
             if (move_valid) {
-                add_move.from = bb_slide_n(bb_slide_w(bb_slide_w(piecepos)));
                 add_move.capture = (piecepos & opp_pieces) > 0;
                 add_move.promotion = 0;
                 moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
             }
         }
         if (pseudo_moves[DIR_SSW] & piecepos) {
+            add_move.from = bb_slide_n(bb_slide_n(bb_slide_e(piecepos)));
             bool moving_king = (add_move.from & my_king) > 0;
             bool moving_pawn = (my_pawns & add_move.from) > 0;
             bool move_valid = (add_move.from & pins) == 0;  // not moving pinned piece
@@ -1283,13 +1443,13 @@ Move *get_legal_moves(Board *board, int *len) {
             move_valid &= ((all_opp_attacked & piecepos) == 0 || !moving_king);  // if moving king, not to attacked square
             move_valid &= (((check_attacks & piecepos) > 0 || moving_king) || !check); // single check allows king move, taking checking piece, blocking
             if (move_valid) {
-                add_move.from = bb_slide_n(bb_slide_n(bb_slide_e(piecepos)));
                 add_move.capture = (piecepos & opp_pieces) > 0;
                 add_move.promotion = 0;
                 moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
             }
         }
         if (pseudo_moves[DIR_SWW] & piecepos) {
+            add_move.from = bb_slide_n(bb_slide_e(bb_slide_e(piecepos)));
             bool moving_king = (add_move.from & my_king) > 0;
             bool moving_pawn = (my_pawns & add_move.from) > 0;
             bool move_valid = (add_move.from & pins) == 0;  // not moving pinned piece
@@ -1297,7 +1457,6 @@ Move *get_legal_moves(Board *board, int *len) {
             move_valid &= ((all_opp_attacked & piecepos) == 0 || !moving_king);  // if moving king, not to attacked square
             move_valid &= (((check_attacks & piecepos) > 0 || moving_king) || !check); // single check allows king move, taking checking piece, blocking
             if (move_valid) {
-                add_move.from = bb_slide_n(bb_slide_e(bb_slide_e(piecepos)));
                 add_move.capture = (piecepos & opp_pieces) > 0;
                 add_move.promotion = 0;
                 moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
@@ -1307,7 +1466,23 @@ Move *get_legal_moves(Board *board, int *len) {
     }
     BitBoard all_pieces = all_pieces_black | all_pieces_white;
     // castling moves
-    if (white && board->can_castle_wk && ((all_opp_attacked & 0x00000000000000f0) == 0) && ((all_pieces & 0x0000000000000060) == 0)) {
+    /*char dumpboard[80];
+    dump_bitboard(all_opp_attacked, dumpboard);
+    printf("Opponent attacked:\n%s\n", dumpboard);
+    printf("pieces clear (White kingside): %d\n", ((all_pieces & 0x0000000000000060) == 0));
+    printf("path safe (White kingside): %d\n", ((all_opp_attacked & 0x000000000000001e) == 0));
+    printf("castle rights (White kingside): %d\n", white && board->can_castle_wk);
+    printf("pieces clear (White queenside): %d\n", ((all_pieces & 0x000000000000000e) == 0));
+    printf("path safe (White queenside): %d\n", ((all_opp_attacked & 0x0000000000000070) == 0));
+    printf("castle rights (White queenside): %d\n", white && board->can_castle_wq);
+    printf("pieces clear (Black kingside): %d\n", ((all_pieces & 0x6000000000000000) == 0));
+    printf("path safe (Black kingside): %d\n", ((all_opp_attacked & 0x1e00000000000000) == 0));
+    printf("castle rights (Black kingside): %d\n", white && board->can_castle_bk);
+    printf("pieces clear (Black queenside): %d\n", ((all_pieces & 0x0e00000000000000) == 0));
+    printf("path safe (Black queenside): %d\n", ((all_opp_attacked & 0x7000000000000000) == 0));
+    printf("castle rights (Black queenside): %d\n", white && board->can_castle_bq);
+    printf("-------------------------------\n");*/
+    if (white && board->can_castle_wk && ((all_opp_attacked & 0x0000000000000070) == 0) && ((all_pieces & 0x0000000000000060) == 0)) {
         // white kingside
         add_move.capture = false;
         add_move.castle = true;
@@ -1316,7 +1491,7 @@ Move *get_legal_moves(Board *board, int *len) {
         add_move.to = bb_slide_e(bb_slide_e(board->bb_white_king));
         moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
     }
-    if (white && board->can_castle_wq && ((all_opp_attacked & 0x000000000000001f) == 0) && ((all_pieces & 0x000000000000000e) == 0)) {
+    if (white && board->can_castle_wq && ((all_opp_attacked & 0x000000000000001e) == 0) && ((all_pieces & 0x000000000000000e) == 0)) {
         // white queenside
         add_move.capture = false;
         add_move.castle = true;
@@ -1325,7 +1500,7 @@ Move *get_legal_moves(Board *board, int *len) {
         add_move.to = bb_slide_w(bb_slide_w(bb_slide_w(board->bb_white_king)));
         moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
     }
-    if ((!white) && board->can_castle_bk && ((all_opp_attacked & 0xf000000000000000) == 0) && ((all_pieces & 0x6000000000000000) == 0)) {
+    if ((!white) && board->can_castle_bk && ((all_opp_attacked & 0x7000000000000000) == 0) && ((all_pieces & 0x6000000000000000) == 0)) {
         // black kingside
         add_move.capture = false;
         add_move.castle = true;
@@ -1334,7 +1509,7 @@ Move *get_legal_moves(Board *board, int *len) {
         add_move.to = bb_slide_e(bb_slide_e(board->bb_black_king));
         moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
     }
-    if ((!white) && board->can_castle_bq && ((all_opp_attacked & 0x1f00000000000000) == 0) && ((all_pieces & 0x0e00000000000000) == 0)) {
+    if ((!white) && board->can_castle_bq && ((all_opp_attacked & 0x1e00000000000000) == 0) && ((all_pieces & 0x0e00000000000000) == 0)) {
         // black queenside
         add_move.capture = false;
         add_move.castle = true;
@@ -1351,9 +1526,50 @@ Move *get_legal_moves(Board *board, int *len) {
     return moves;
 }
 
+// Returns true if a threefold repetition has occurred on [board]
+bool is_threefold_draw(Board *board) {
+    // i hate everything
+    int cur_size = 0;
+    int max_size = 1;
+    Board **boards = malloc(sizeof(Board *));
+    int *counts = malloc(sizeof(int));
+    Board *cur_board = board;
+    bool hit, found = false;
+    while (cur_board) {
+        hit = false;
+        for (int i = 0; i < cur_size; i++) {
+            if (board_equals(boards[i], cur_board)) {
+                counts[i]++;
+                hit = true;
+                if (counts[i] >= 3) {
+                    found = true;
+                }
+                break;
+            }
+        }
+        if (found) break;
+        if (!hit) {
+            if (cur_size == max_size) {
+                max_size *= 2;
+                boards = realloc(boards, max_size*sizeof(Board *));
+                counts = realloc(counts, max_size*sizeof(int));
+            }
+            boards[cur_size] = cur_board;
+            counts[cur_size] = 0;
+            cur_size++;
+        }
+        cur_board = cur_board->last_board;
+    }
+    free(boards);
+    free(counts);
+    if (!hit) return false;
+    return true;
+}
+
 // Returns GAME_NORMAL, GAME_STALEMATE or GAME_CHECKMATE based on the state on [board]
 int get_board_end_state(Board *board) {
     if (board->halfmoves >= 50) return GAME_STALEMATE;
+    if (is_threefold_draw(board)) return GAME_STALEMATE;
     int num_legal_moves;
     free(get_legal_moves(board, &num_legal_moves));
     if (num_legal_moves > 0) return GAME_NORMAL;
@@ -1369,6 +1585,11 @@ void start_chess_api() {
     API->wtime = 0;
     API->btime = 0;
     sem_init(&API->intermission_mutex, 0, 0);
+    // setup zobrist keys
+    srand(time(NULL));
+    for (int i = 0; i < 781; i++) {
+        zobrist_keys[i] = rand_long();
+    }
     // start the uci server in its own thread
     uci_start(&API->uci_thread);
     // block until uci endpoint says go
@@ -1386,13 +1607,15 @@ Move *chess_get_legal_moves(Board *board, int *len) {
 }
 
 bool chess_is_white_turn(Board *board) {
-    if (API == NULL) start_chess_api();
     return is_white_turn(board);
 }
 
 int chess_is_game_ended(Board *board) {
-    if (API == NULL) start_chess_api();
     return get_board_end_state(board);
+}
+
+uint64_t chess_zobrist_key(Board *board) {
+    return board->hash;
 }
 
 void chess_make_move(Board *board, Move move) {
@@ -1413,6 +1636,16 @@ void chess_free_board(Board *board) {
 long chess_get_time_millis() {
     if (API == NULL) start_chess_api();
     return interface_get_time_millis();
+}
+
+long chess_get_opponent_time_millis() {
+    if (API == NULL) start_chess_api();
+    return interface_get_opponent_time_millis();
+}
+
+long chess_get_elapsed_time_millis() {
+    if (API == NULL) start_chess_api();
+    return interface_get_elapsed_time_millis();
 }
 
 void chess_push(Move move) {
@@ -1439,4 +1672,38 @@ BitBoard chess_get_bitboard(Board *board, int color, int piece_type) {
 
 bool chess_is_check(Board *board) {
     return in_check(board, board->whiteToMove);
+}
+
+void chess_skip_turn(Board *board) {
+    Move null_move;  // quite literally!
+    memset(&null_move, 0, sizeof(Move));
+    make_move(board, null_move);
+}
+
+bool chess_in_check(Board *board) {
+    return in_check(board, board->whiteToMove);
+}
+
+bool chess_in_checkmate(Board *board) {
+    int num_legal_moves;
+    free(get_legal_moves(board, &num_legal_moves));
+    if (num_legal_moves > 0) return false;
+    return in_check(board, board->whiteToMove);
+}
+
+bool chess_in_draw(Board *board) {
+    if (board->halfmoves >= 50) return true;
+    if (is_threefold_draw(board)) return true;
+    int num_legal_moves;
+    free(get_legal_moves(board, &num_legal_moves));
+    if (num_legal_moves > 0) return false;
+    return !in_check(board, board->whiteToMove);
+}
+
+bool chess_can_kingside_castle(Board *board, bool color) {
+    return (color == BLACK) ? board->can_castle_bk : board->can_castle_wk;
+}
+
+bool chess_can_queenside_castle(Board *board, bool color) {
+    return (color == BLACK) ? board->can_castle_bq : board->can_castle_wq;
 }
