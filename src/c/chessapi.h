@@ -128,6 +128,13 @@ long chess_get_opponent_time_millis();
 // Returns how much time has elapsed this turn, in ms
 long chess_get_elapsed_time_millis();
 
+
+///// OTHER /////
+
+// Free function for an array of moves, such as the one returned from get_legal_moves
+// Under the hood this is just a normal free(), but it's convenient for external bindings to include it here
+void chess_free_moves_array(Move *moves);
+
 #ifdef __cplusplus
 }
 #endif
