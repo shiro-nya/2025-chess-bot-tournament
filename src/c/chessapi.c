@@ -626,13 +626,13 @@ void undo_move(Board *board) {
 
 // Listens for and responds to UCI messages from the GUI. Updates API state as needed.
 void *uci_process(void *arg) {
-    char line[1024];
+    char line[4096];
     bool running = true;
     while (running) {
         scanf("%[\r\n]", line);
-        memset(&line, 0, 1024);
+        memset(&line, 0, 4096);
         scanf("%[^\r\n]", line);
-        line[1023] = 0;
+        line[4095] = 0;
         char *token = strtok(line, " ");
         while (running && (token != NULL)) {
             if (!strcmp(token, "uci")) {
