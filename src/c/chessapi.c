@@ -8,8 +8,8 @@
 #include <semaphore.h>
 #include <time.h>
 
-#define CHESS_BOT_NAME "LoserBot"
-#define BOT_AUTHOR_NAME "shiro__nya"
+#define CHESS_BOT_NAME "My Chess Bot"
+#define BOT_AUTHOR_NAME "Author Name Here"
 
 // ray direction constants (last 8 for knights)
 #define DIR_N 0
@@ -1528,6 +1528,7 @@ Move *get_legal_moves(Board *board, int *len) {
 
 // Returns true if a threefold repetition has occurred on [board]
 bool is_threefold_draw(Board *board) {
+    if (API == NULL) start_chess_api();
     // i hate everything
     int cur_size = 0;
     int max_size = 1;
@@ -1646,6 +1647,10 @@ long chess_get_opponent_time_millis() {
 long chess_get_elapsed_time_millis() {
     if (API == NULL) start_chess_api();
     return interface_get_elapsed_time_millis();
+}
+
+void chess_free_moves_array(Move *moves) {
+    free(moves);
 }
 
 void chess_push(Move move) {
