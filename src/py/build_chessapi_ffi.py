@@ -49,11 +49,11 @@ void chess_done();
 long chess_get_time_millis();
 long chess_get_opponent_time_millis();
 long chess_get_elapsed_time_millis();
+void chess_free_moves_array(Move *moves);
 """)
 
 ffibuilder.set_source("_chessapi_cffi",
 r"""
-    #include <stdlib.h>
     #include "chessapi.h"
 """,
 sources=['chessapi.c', 'bitboard.c'])

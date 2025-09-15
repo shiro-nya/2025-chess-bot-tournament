@@ -77,7 +77,7 @@ class Board:
         moves = ffi.unpack(moves_C, moves_len)
         for i in range(len(moves)):
             moves[i] = Move.load(moves[i])
-        lib.free(moves_C)
+        lib.chess_free_moves_array(moves_C)
         return moves
 
     def is_white_turn(self) -> bool:
