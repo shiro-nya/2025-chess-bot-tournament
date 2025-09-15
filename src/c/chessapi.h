@@ -5,39 +5,39 @@
 #include <stdbool.h>
 #include "bitboard.h"
 
-// Player color constants
+//! Player color
 typedef enum {
-    WHITE,
-    BLACK
+    WHITE, /*!< The player using white pieces*/
+    BLACK  /*!< The player using black pieces*/
 } PlayerColor;
 
-// Piece type constants
+//! Piece type
 typedef enum {
-    PAWN = 1,
-    BISHOP,
-    KNIGHT,
-    ROOK,
-    QUEEN,
-    KING
+    PAWN = 1, /*!< A pawn piece*/
+    BISHOP,   /*!< A bishop piece*/
+    KNIGHT,   /*!< A knight piece*/
+    ROOK,     /*!< A rook piece*/
+    QUEEN,    /*!< A queen piece*/
+    KING      /*!< A king piece*/
 } PieceType;
 
-// Game play state constants
+//! Game play state
 typedef enum {
-    GAME_CHECKMATE = -1,
-    GAME_NORMAL,
-    GAME_STALEMATE
+    GAME_CHECKMATE = -1, /*!< Indicates the game has ended in a checkmate*/
+    GAME_NORMAL,         /*!< Indicates the game has not ended yet*/
+    GAME_STALEMATE       /*!< Indicates the game has ended in a draw*/
 } GameState;
 
-// The Board struct represents a single chess game
+//! A Board represents a single chess game
 typedef struct Board Board;
 
-// The Move struct represents a single chess move from a start location to an end location
+//! A Move represents a single chess move from a start location to an end location
 typedef struct {
-    BitBoard from;      // A BitBoard representing the origin of the move
-    BitBoard to;        // A BitBorad representing the target of the move
-    uint8_t promotion;  // Will be one of the BISHOP, KNIGHT, ROOK, QUEEN constants above, or 0 if not required
-    bool capture;       // True if this move captures a piece
-    bool castle;        // True if this move is castling
+    BitBoard from;      /*!< A BitBoard representing the origin of the move*/
+    BitBoard to;        /*!< A BitBorad representing the target of the move*/
+    uint8_t promotion;  /*!< Will be one of the BISHOP, KNIGHT, ROOK, QUEEN constants above, or 0 if not required*/
+    bool capture;       /*!< True if this move captures a piece*/
+    bool castle;        /*!< True if this move is castling*/
 } Move;
 
 #ifdef __cplusplus
@@ -47,92 +47,194 @@ extern "C" {
 ///// BOARD-RELATED FUNCTIONS /////
 
 
-// Returns the current board being played
-// Caller must free the board with free_board
+//! Returns the current board being played
+/*!
+Caller must free the board with free_board
+\sa chess_free_board()
+\return The current board being played in the chess match
+*/
 Board *chess_get_board();
 
-// Returns an array of legal moves on the given [board], and store its length in [len]
-// Caller must free array
+//! Returns an array of legal moves
+/*!
+Caller must free array
+\param board The board to get legal moves on
+\param len A pointer in which the array length will be stored
+\return A pointer to the start of an array of moves
+*/
 Move *chess_get_legal_moves(Board *board, int *len);
 
-// Returns true if it is currently white to move on [board]
+//! Returns whether it is white's turn or not
+/*!
+\param board The board to consider
+\return True if it is white to move
+*/
 bool chess_is_white_turn(Board *board);
 
-// Returns true if the current player on [board] is in check
-bool chess_is_check(Board *board);
-
-// Skips your turn on the given board. You can't actually skip your turn, but it's useful for some search techniques.
-// Can be un-done using undo_move() as usual.
+//! Skips your turn on the given board.
+/*!
+You can't actually skip your turn, but it's useful for some search techniques.
+Can be un-done using undo_move as usual.
+\sa chess_undo_move()
+\param board The board to consider
+*/
 void chess_skip_turn(Board *board);
 
-// Returns true if in check
+//! Returns whether the current player is in check
+/*!
+\param board The board to consider
+\return True if the current player is in check
+*/
 bool chess_in_check(Board *board);
 
-// Returns true if in checkmate
+//! Returns whether the current player is in checkmate
+/*!
+\param board The board to consider
+\return True if the current player is in checkmate
+*/
 bool chess_in_checkmate(Board *board);
 
-// Returns true if in draw for any reason
+//! Returns whether the current player is in a draw
+/*!
+This function considers positions with no legal moves, the 50-move rule, and threefold repetition as draws.
+\param board The board to consider
+\return True if the current game is a draw for any reason
+*/
 bool chess_in_draw(Board *board);
 
-// Returns true if [color] can castle kingside, where color is one of the Player color constants
+
+//! Returns if the indicated player has kingside castling rights
+/*!
+You lose kingside castling rights if you move your king or the kingside rook
+\sa chess_can_queenside_castle()
+\param board The board to consider
+\param color The player to consider
+\return True if the player has kingside castling rights
+*/
 bool chess_can_kingside_castle(Board *board, PlayerColor color);
 
-// Returns true if [color] can castle queenside, where color is one of the Player color constants
+//! Returns if the indicated player has queenside castling rights
+/*!
+You lose queenside castling rights if you move your king or the queenside rook
+\sa chess_can_kingside_castle()
+\param board The board to consider
+\param color The player to consider
+\return True if the player has queenside castling rights
+*/
 bool chess_can_queenside_castle(Board *board, PlayerColor color);
 
 // Returns one of the "Game end" constants for the given [board]
-// (i.e. whether it is in checkmate, stalemate or neither if the game is ongoing)
-// This is about the same cost as calls to in_check(), in_draw(), etc., so if you plan to check multiple you may wish to use this
+
+//! Returns one of the GameState constants for the given board
+/*!
+The GameState constants indicate whether the game is in checkmate, stalemate or neither (if the game is ongoing)
+This is about the same cost as calls to in_check(), in_draw(), etc., so if you plan to check multiple you may wish to use this
+\sa chess_in_check()
+\sa chess_in_checkmate()
+\sa chess_in_draw()
+\param board The board to consider
+\return The current GameState
+*/
 GameState chess_is_game_ended(Board *board);
 
-// Returns the Zobrist hash that represents [board].
+//! Returns the Zobrist hash that represents the board.
+/*!
+Zobrist hashes are not guaranteed to be unique for all boards. Collisions are unlikely, but if you consider enough boards you should expect a collision.
+The hashes consider en passant and castling possibilities as part of the hash, these will create different hashes otherwise visually identical positions
+\param board The board to consider
+\return The hash associated with the board
+*/
 uint64_t chess_zobrist_key(Board *board);
 
-// Performs the [move] on the [board]
+//! Performs a move on the board
+/*!
+\sa chess_undo_move()
+\param board The board to perform the move on
+\param move The move to perform
+*/
 void chess_make_move(Board *board, Move move);
 
-// Undo the previous move on the [board]
+//! Undo the previous move on the board
+/*!
+This function can be invoked multiple times to undo a sequence of moves
+It is an error to call this function on a board which has not had any moves played on it
+\sa chess_make_move()
+\param board The board to undo the move from
+*/
 void chess_undo_move(Board *board);
 
-// free() function for Boards
+//! free() function for Board instances
+/*!
+Board instances are invalid after being freed and should not be used after being given to this function
+\param board The board to be freed
+*/
 void chess_free_board(Board *board);
 
-// Returns the BitBoard for the given [color] and [piece_type] from [board].
-// For more info on working with BitBoards, see "bitboard.h"
+//! Returns the BitBoard for the given color and piece type from the board.
+/*!
+For more info on working with BitBoards, see "bitboard.h"
+\param board The board to get the bitboard of
+\param color The player color whose pieces to get
+\param piece_type The type of piece to get
+\return A BitBoard with bits set to 1 for all squares containing the described piece
+*/
 BitBoard chess_get_bitboard(Board *board, PlayerColor color, PieceType piece_type);
 
 
 ///// MOVE SUBMISSION /////
 
 
-// Submit a new [move] to the chess server to play
-// You can call this more than once per turn
-// The latest move pushed by the bot will be played by the server once chess_done() is called
+//! Submit a new move to the chess server to play.
+/*!
+You can call this more than once per turn.
+The latest move pushed by the bot will be played by the server once chess_done() is called.
+\sa chess_done()
+\param move The move to submit
+*/
 void chess_push(Move move);
 
-// Indicates that the engine has completed its search and ends the turn
-// The latest move pushed will be played by the server
-// This method will block until the opponent's turn has passed
+//! Ends the current turn.
+/*!
+The latest move pushed will be played by the server.
+This method will block until the opponent's turn has passed.
+\sa chess_push()
+*/
 void chess_done();
 
 
 ///// TIME MANAGEMENT /////
 
 
-// Returns the remaining time this bot had at the start of its turn, in ms
+//! Returns the remaining time this bot had at the start of its turn, in ms.
+/*!
+\sa chess_get_elapsed_time_millis()
+\return Remaining time, in milliseconds.
+*/
 long chess_get_time_millis();
 
-// Returns the remaining time the opponent bot had at the start of its turn, in ms
+//! Returns the remaining time the opponent bot had at the start of its turn, in ms.
+/*!
+\return Remaining time, in milliseconds.
+*/
 long chess_get_opponent_time_millis();
 
-// Returns how much time has elapsed this turn, in ms
+//! Returns how much time has elapsed this turn, in ms.
+/*!
+\sa chess_get_time_millis()
+\return Elapsed time, in milliseconds.
+*/
 long chess_get_elapsed_time_millis();
 
 
 ///// OTHER /////
 
-// Free function for an array of moves, such as the one returned from get_legal_moves
-// Under the hood this is just a normal free(), but it's convenient for external bindings to include it here
+//! Free function for an array of moves.
+/*!
+This is intended for move arrays such as the one returned from get_legal_moves.
+Move arrays are invalid after being given to this function and should not be used after.
+Under the hood this is just a normal free(), but it's convenient for external bindings to include it here.
+\param moves A pointer to the move array to free
+*/
 void chess_free_moves_array(Move *moves);
 
 #ifdef __cplusplus
