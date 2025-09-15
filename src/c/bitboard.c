@@ -1,5 +1,31 @@
 #include "bitboard.h"
 
+#define _bb_flood(dir) BitBoard bb_flood_ ## dir (BitBoard board, BitBoard empty, bool captures) { \
+    BitBoard gen = board; \
+    for (int i = 0; i < 7; i++) { \
+        gen |= bb_slide_ ## dir (gen) & empty; \
+    } \
+    return captures ? bb_slide_ ## dir (gen) : gen & empty; \
+}
+
+#define _bb_blocker(dir) BitBoard bb_blocker_ ## dir (BitBoard board, BitBoard empty) { \
+    BitBoard gen = board; \
+    for (int i = 0; i < 7; i++) { \
+        gen = bb_slide_ ## dir (gen); \
+        if ((gen & empty) == 0) return gen; \
+    } \
+    return gen; \
+}
+
+#define _all_dirs(submacro) submacro(n) \
+    submacro(ne) \
+    submacro(e) \
+    submacro(se) \
+    submacro(s) \
+    submacro(sw) \
+    submacro(w) \
+    submacro(nw) \
+
 // Debug print function
 // [buffer] should be at least 72 bytes
 void dump_bitboard(BitBoard board, char *buffer) {
@@ -57,141 +83,9 @@ BitBoard bb_slide_sw(BitBoard board) {
 // marking spaces until encountering an occluded space according to [empty], then return all
 // marked spaces. If [captures], then includes the occluded space.
 
-BitBoard bb_flood_n(BitBoard board, BitBoard empty, bool captures) {
-    BitBoard gen = board;
-    for (int i = 0; i < 7; i++) {
-        gen |= bb_slide_n(gen) & empty;
-    }
-    return captures ? bb_slide_n(gen) : gen & empty;
-}
-
-BitBoard bb_flood_ne(BitBoard board, BitBoard empty, bool captures) {
-    BitBoard gen = board;
-    for (int i = 0; i < 7; i++) {
-        gen |= bb_slide_ne(gen) & empty;
-    }
-    return captures ? bb_slide_ne(gen) : gen & empty;
-}
-
-BitBoard bb_flood_e(BitBoard board, BitBoard empty, bool captures) {
-    BitBoard gen = board;
-    for (int i = 0; i < 7; i++) {
-        gen |= bb_slide_e(gen) & empty;
-    }
-    return captures ? bb_slide_e(gen) : gen & empty;
-}
-
-BitBoard bb_flood_se(BitBoard board, BitBoard empty, bool captures) {
-    BitBoard gen = board;
-    for (int i = 0; i < 7; i++) {
-        gen |= bb_slide_se(gen) & empty;
-    }
-    return captures ? bb_slide_se(gen) : gen & empty;
-}
-
-BitBoard bb_flood_s(BitBoard board, BitBoard empty, bool captures) {
-    BitBoard gen = board;
-    for (int i = 0; i < 7; i++) {
-        gen |= bb_slide_s(gen) & empty;
-    }
-    return captures ? bb_slide_s(gen) : gen & empty;
-}
-
-BitBoard bb_flood_sw(BitBoard board, BitBoard empty, bool captures) {
-    BitBoard gen = board;
-    for (int i = 0; i < 7; i++) {
-        gen |= bb_slide_sw(gen) & empty;
-    }
-    return captures ? bb_slide_sw(gen) : gen & empty;
-}
-
-BitBoard bb_flood_w(BitBoard board, BitBoard empty, bool captures) {
-    BitBoard gen = board;
-    for (int i = 0; i < 7; i++) {
-        gen |= bb_slide_w(gen) & empty;
-    }
-    return captures ? bb_slide_w(gen) : gen & empty;
-}
-
-BitBoard bb_flood_nw(BitBoard board, BitBoard empty, bool captures) {
-    BitBoard gen = board;
-    for (int i = 0; i < 7; i++) {
-        gen |= bb_slide_nw(gen) & empty;
-    }
-    return captures ? bb_slide_nw(gen) : gen & empty;
-}
+_all_dirs(_bb_flood)
 
 // Directional BitBoard blocker functions travel from position [board] in the given direction
 // until encountering an occluded space according to [empty], then returns this occluded space.
 
-BitBoard bb_blocker_n(BitBoard board, BitBoard empty) {
-    BitBoard gen = board;
-    for (int i = 0; i < 7; i++) {
-        gen = bb_slide_n(gen);
-        if ((gen & empty) == 0) return gen;
-    }
-    return gen;
-}
-
-BitBoard bb_blocker_ne(BitBoard board, BitBoard empty) {
-    BitBoard gen = board;
-    for (int i = 0; i < 7; i++) {
-        gen = bb_slide_ne(gen);
-        if ((gen & empty) == 0) return gen;
-    }
-    return gen;
-}
-
-BitBoard bb_blocker_e(BitBoard board, BitBoard empty) {
-    BitBoard gen = board;
-    for (int i = 0; i < 7; i++) {
-        gen = bb_slide_e(gen);
-        if ((gen & empty) == 0) return gen;
-    }
-    return gen;
-}
-
-BitBoard bb_blocker_se(BitBoard board, BitBoard empty) {
-    BitBoard gen = board;
-    for (int i = 0; i < 7; i++) {
-        gen = bb_slide_se(gen);
-        if ((gen & empty) == 0) return gen;
-    }
-    return gen;
-}
-
-BitBoard bb_blocker_s(BitBoard board, BitBoard empty) {
-    BitBoard gen = board;
-    for (int i = 0; i < 7; i++) {
-        gen = bb_slide_s(gen);
-        if ((gen & empty) == 0) return gen;
-    }
-    return gen;
-}
-
-BitBoard bb_blocker_sw(BitBoard board, BitBoard empty) {
-    BitBoard gen = board;
-    for (int i = 0; i < 7; i++) {
-        gen = bb_slide_sw(gen);
-        if ((gen & empty) == 0) return gen;
-    }
-    return gen;
-}
-
-BitBoard bb_blocker_w(BitBoard board, BitBoard empty) {
-    BitBoard gen = board;
-    for (int i = 0; i < 7; i++) {
-        gen = bb_slide_w(gen);
-        if ((gen & empty) == 0) return gen;
-    }
-    return gen;
-}
-
-BitBoard bb_blocker_nw(BitBoard board, BitBoard empty) {
-    BitBoard gen = board;
-    for (int i = 0; i < 7; i++) {
-        gen = bb_slide_nw(gen);
-        if ((gen & empty) == 0) return gen;
-    }
-    return gen;
-}
+_all_dirs(_bb_blocker)
