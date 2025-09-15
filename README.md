@@ -7,7 +7,7 @@ If you have questions, or requests for language support, feel free to reach out 
 - If something changes during the contest (bug fixed in API, rules clarification), I will make a note of it here.
 
 ## How to participate
-- Install a development environment for one of the supported languages: Python, C
+- Install a development environment for one of the supported languages: Python, C, C++ (the C API should be compatible)
 - Get the resources for your language from its folder under `src`. Don't forget to check the language-specific README and the [docs](https://github.com/shiro-nya/2025-chess-bot-tournament/wiki)!
 - Write some code!
 - Run the program to test your changes, and measure its performance.
