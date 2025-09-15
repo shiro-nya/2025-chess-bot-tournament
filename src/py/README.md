@@ -12,4 +12,4 @@
 - Run your code!
   - Tip: Easiest to test by adding as a bot to a compatible chess program
 
-Be sure to refer to the docs to see how to use the API!
+Be sure to refer to the [docs](https://github.com/shiro-nya/2025-chess-bot-tournament/wiki/Chess-API-(Python)) to see how to use the API!
