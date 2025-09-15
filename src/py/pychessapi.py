@@ -30,9 +30,9 @@ class GameState(Enum):
 
 class Move:
 
-    origin: int 
-    target: int 
-    promotion: str
+    origin: BitBoard
+    target: BitBoard
+    promotion: PieceType
     castle: bool
     capture: bool
     _share_ptr: Any
@@ -83,7 +83,7 @@ class Board:
     def is_white_turn(self) -> bool:
         return lib.chess_is_white_turn(self.ptr)
 
-    def chess_skip_turn(self) -> None:
+    def skip_turn(self) -> None:
         lib.chess_skip_turn(self.ptr)
 
     def in_check(self) -> bool:
