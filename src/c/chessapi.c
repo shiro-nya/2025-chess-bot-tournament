@@ -1532,6 +1532,7 @@ void start_chess_api() {
     API->shared_board = NULL;
     API->wtime = 0;
     API->btime = 0;
+    pthread_mutex_init(&API->mutex, NULL);
     sem_init(&API->intermission_mutex, 0, 0);
     // setup zobrist keys
     srand(time(NULL));
