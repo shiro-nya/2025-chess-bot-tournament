@@ -1526,6 +1526,24 @@ Move *get_legal_moves(Board *board, int *len) {
     return moves;
 }
 
+// Starts the Chess API internals, and returns the interface to the bot for access.
+void start_chess_api() {
+    API = (InternalAPI *)malloc(sizeof(InternalAPI));
+    API->shared_board = NULL;
+    API->wtime = 0;
+    API->btime = 0;
+    sem_init(&API->intermission_mutex, 0, 0);
+    // setup zobrist keys
+    srand(time(NULL));
+    for (int i = 0; i < 781; i++) {
+        zobrist_keys[i] = rand_long();
+    }
+    // start the uci server in its own thread
+    uci_start(&API->uci_thread);
+    // block until uci endpoint says go
+    sem_wait(&API->intermission_mutex);
+}
+
 // Returns true if a threefold repetition has occurred on [board]
 bool is_threefold_draw(Board *board) {
     if (API == NULL) start_chess_api();
@@ -1577,24 +1595,6 @@ int get_board_end_state(Board *board) {
     bool check = in_check(board, board->whiteToMove);
     if (check) return GAME_CHECKMATE;
     return GAME_STALEMATE;
-}
-
-// Starts the Chess API internals, and returns the interface to the bot for access.
-void start_chess_api() {
-    API = (InternalAPI *)malloc(sizeof(InternalAPI));
-    API->shared_board = NULL;
-    API->wtime = 0;
-    API->btime = 0;
-    sem_init(&API->intermission_mutex, 0, 0);
-    // setup zobrist keys
-    srand(time(NULL));
-    for (int i = 0; i < 781; i++) {
-        zobrist_keys[i] = rand_long();
-    }
-    // start the uci server in its own thread
-    uci_start(&API->uci_thread);
-    // block until uci endpoint says go
-    sem_wait(&API->intermission_mutex);
 }
 
 Board *chess_get_board() {
