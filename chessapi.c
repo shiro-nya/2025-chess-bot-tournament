@@ -8,8 +8,8 @@
 #include <semaphore.h>
 #include <time.h>
 
-#define CHESS_BOT_NAME "LoserBot"
-#define BOT_AUTHOR_NAME "shiro__nya"
+#define CHESS_BOT_NAME "My Chess Bot"
+#define BOT_AUTHOR_NAME "Author Name Here"
 
 // ray direction constants (last 8 for knights)
 #define DIR_N 0
