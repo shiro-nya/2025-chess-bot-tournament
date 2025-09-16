@@ -397,7 +397,7 @@ void make_move(Board *board, Move move) {
     board->last_board = saved_board;
     int from = highest_bit(move.from);
     int to = highest_bit(move.to);
-    uint8_t hash = board->hash;
+    uint64_t hash = board->hash;
     board->halfmoves++;
     BitBoard flip_pieces = move.to | move.from;
     hash ^= highest_bit(board->en_passant_target) % 8; // xor out the old en passant hash
@@ -607,6 +607,7 @@ void undo_move(Board *board) {
     board->fullmoves = restore->fullmoves;
     board->whiteToMove = restore->whiteToMove;
     board->en_passant_target = restore->en_passant_target;
+    board->hash = restore->hash;
     // free old move caches before overwriting
     if (board->bb_white_moves != NULL) {
         free(board->bb_white_moves);
