@@ -143,7 +143,7 @@ Move load_move(char *movestr, Board *board) {
         BitBoard all_pieces = all_pieces_black | all_pieces_white;
         m.capture = (m.from & all_pieces) > 0;
         m.castle = (m.from & (board->bb_black_king | board->bb_white_king)) > 0 &&
-            ((bb_slide_e(bb_slide_e(m.from)) | bb_slide_w(bb_slide_w(bb_slide_w(m.from)))) & m.to) > 0;
+            ((bb_slide_e(bb_slide_e(m.from)) | bb_slide_w(bb_slide_w(m.from))) & m.to) > 0;
     }
     return m;
 }
@@ -911,8 +911,9 @@ BitBoard get_pins(Board *board, bool white) {
 // Pseudo-legal moves are valid moves prior to evaluating for checks.
 // If [all_attacked], will include all squares attacked by at least one piece, instead of filtering for legal captures.
 // Squares in [exclude] are overridden and considered empty.
+// If [exclude_pawn_moves], pawn forward advances are not included (effectively making this only return attacks).
 // Caller must free move array.
-BitBoard *get_pseudo_legal_moves(Board *board, bool white, bool all_attacked, BitBoard exclude) {
+BitBoard *get_pseudo_legal_moves(Board *board, bool white, bool all_attacked, BitBoard exclude, bool exclude_pawn_moves) {
     BitBoard *dirmoves = malloc(16*sizeof(BitBoard));
     if ((!all_attacked) && (exclude == 0)) {
         if (white && board->bb_white_moves) {
@@ -933,8 +934,9 @@ BitBoard *get_pseudo_legal_moves(Board *board, bool white, bool all_attacked, Bi
     BitBoard all_pieces = all_pieces_black | all_pieces_white;
     BitBoard empty = exclude | ~all_pieces;
     BitBoard all_attacked_mask = all_attacked ? ~0ul : 0ul;
+    BitBoard exclude_pawn_move_mask = exclude_pawn_moves ? 0ul : ~0ul;
     if (white) {
-        BitBoard pawn_moves = bb_slide_n(board->bb_white_pawn) & empty;
+        BitBoard pawn_moves = bb_slide_n(board->bb_white_pawn) & empty & exclude_pawn_move_mask;
         BitBoard pawn_big_moves = bb_slide_n(pawn_moves & 0x0000000000ff0000ul) & empty;
         BitBoard pawn_attacks_ne = bb_slide_ne(board->bb_white_pawn) & (all_pieces_black | board->en_passant_target | all_attacked_mask);
         BitBoard pawn_attacks_nw = bb_slide_nw(board->bb_white_pawn) & (all_pieces_black | board->en_passant_target | all_attacked_mask);
@@ -971,7 +973,7 @@ BitBoard *get_pseudo_legal_moves(Board *board, bool white, bool all_attacked, Bi
         dirmoves[DIR_W] = (ray_moves_w | king_moves_w) & (all_attacked_mask | ~all_pieces_white);
         dirmoves[DIR_NW] = (pawn_attacks_nw | ray_moves_nw | king_moves_nw) & (all_attacked_mask | ~all_pieces_white);
     } else {
-        BitBoard pawn_moves = bb_slide_s(board->bb_black_pawn) & empty;
+        BitBoard pawn_moves = bb_slide_s(board->bb_black_pawn) & empty & exclude_pawn_move_mask;
         BitBoard pawn_big_moves = bb_slide_s(pawn_moves & 0x0000ff0000000000ul) & empty;
         BitBoard pawn_attacks_se = bb_slide_se(board->bb_black_pawn) & (all_pieces_white | board->en_passant_target | all_attacked_mask);
         BitBoard pawn_attacks_sw = bb_slide_sw(board->bb_black_pawn) & (all_pieces_white | board->en_passant_target | all_attacked_mask);
@@ -1022,7 +1024,7 @@ BitBoard *get_pseudo_legal_moves(Board *board, bool white, bool all_attacked, Bi
 
 // Returns true if the king is in check on [board]. Checks this for white if [white], otherwise checks for black.
 bool in_check(Board *board, bool white) {
-    BitBoard *moves = get_pseudo_legal_moves(board, !white, true, 0);
+    BitBoard *moves = get_pseudo_legal_moves(board, !white, true, 0, true);
     BitBoard king_square = white ? board->bb_white_king : board->bb_black_king;
     for (int dir = 0; dir < 16; dir++) {
         if ((moves[dir] & king_square) > 0) return true;
@@ -1033,7 +1035,7 @@ bool in_check(Board *board, bool white) {
 
 // Returns the number of pieces on [board] which attack [target]. Checks this for black attackers if [defenderWhite], otherwise checks for white attackers.
 int num_attackers(Board *board, BitBoard target, bool defenderWhite) {
-    BitBoard *moves = get_pseudo_legal_moves(board, !defenderWhite, true, 0);
+    BitBoard *moves = get_pseudo_legal_moves(board, !defenderWhite, true, 0, true);
     BitBoard king_square = defenderWhite ? board->bb_white_king : board->bb_black_king;
     int count = 0;
     for (int dir = 0; dir < 16; dir++) {
@@ -1066,7 +1068,7 @@ BitBoard en_passant_valid(Board *board, bool white) {
 // Returns squares on [board] which, if in single check, moving to would eliminate the check against white's king if [defenderWhite], black otherwise.
 // Only valid if single check situation
 BitBoard single_check_block_tiles(Board *board, bool defenderWhite) {
-    BitBoard *moves = get_pseudo_legal_moves(board, !defenderWhite, true, 0);
+    BitBoard *moves = get_pseudo_legal_moves(board, !defenderWhite, true, 0, true);
     BitBoard all_pieces_white = board->bb_white_bishop | board->bb_white_king
         | board->bb_white_knight | board->bb_white_pawn | board->bb_white_queen
         | board->bb_white_rook;
@@ -1118,8 +1120,8 @@ Move *add_to_moves(Move *moves, size_t *len_moves, size_t *maxlen_moves, Move mo
 Move *get_legal_moves(Board *board, int *len) {
     bool white = is_white_turn(board);
     BitBoard my_king = white ? board->bb_white_king : board->bb_black_king;
-    BitBoard *pseudo_moves = get_pseudo_legal_moves(board, is_white_turn(board), false, 0);
-    BitBoard *opp_pseudo_moves = get_pseudo_legal_moves(board, !is_white_turn(board), true, my_king);
+    BitBoard *pseudo_moves = get_pseudo_legal_moves(board, is_white_turn(board), false, 0, false);
+    BitBoard *opp_pseudo_moves = get_pseudo_legal_moves(board, !is_white_turn(board), true, my_king, true);
     /*char bitboard_dump[80];
     printf("DEBUG: directional attack boards follow\n");
     for (int i = 0; i < 16; i++) {
@@ -1497,7 +1499,7 @@ Move *get_legal_moves(Board *board, int *len) {
         add_move.castle = true;
         add_move.promotion = 0;
         add_move.from = board->bb_white_king;
-        add_move.to = bb_slide_w(bb_slide_w(bb_slide_w(board->bb_white_king)));
+        add_move.to = bb_slide_w(bb_slide_w(board->bb_white_king));
         moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
     }
     if ((!white) && board->can_castle_bk && ((all_opp_attacked & 0x7000000000000000) == 0) && ((all_pieces & 0x6000000000000000) == 0)) {
@@ -1515,7 +1517,7 @@ Move *get_legal_moves(Board *board, int *len) {
         add_move.castle = true;
         add_move.promotion = 0;
         add_move.from = board->bb_black_king;
-        add_move.to = bb_slide_w(bb_slide_w(bb_slide_w(board->bb_black_king)));
+        add_move.to = bb_slide_w(bb_slide_w(board->bb_black_king));
         moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
     }
     // shrink array to fit
