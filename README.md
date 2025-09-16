@@ -11,7 +11,7 @@ If you have questions, or requests for language support, feel free to reach out 
 - Get the resources for your language from its folder under `src`. Don't forget to check the language-specific README and the [docs](https://github.com/shiro-nya/2025-chess-bot-tournament/wiki)!
 - Write some code!
 - Run the program to test your changes, and measure its performance.
-  - You will likely want a program that can interface with UCI to test your both with. One such program is [Arena](http://www.playwitharena.de), which will be used to host the tournament.
+  - You will likely want a program that can interface with UCI to test your both with. One such program is [Cute Chess](https://cutechess.com), which will be used to host the tournament.
 - When you're happy with your bot, submit it using the [submission form](https://forms.gle/hUD66B5Aec3Z64aJ7)!
   - You will be able to edit your entry until submissions close.
 
