@@ -117,7 +117,6 @@ bool board_equals(Board *board1, Board *board2) {
 
 // creates a Move from a [movestr] in standard game notation and returns it
 // if [board] is given, will augment move with flags; NULL is okay too
-// TODO: augment so en passant is a capture too
 Move load_move(char *movestr, Board *board) {
     Move m;
     m.from = 1ul << ((movestr[0] - 'a') + 8*(movestr[1] - '1'));
@@ -141,7 +140,8 @@ Move load_move(char *movestr, Board *board) {
             | board->bb_black_knight | board->bb_black_pawn | board->bb_black_queen
             | board->bb_black_rook;
         BitBoard all_pieces = all_pieces_black | all_pieces_white;
-        m.capture = (m.from & all_pieces) > 0;
+        bool en_passant = ((board->bb_black_pawn | board->bb_white_pawn) & m.from) && (board->en_passant_target & m.to);
+        m.capture = ((m.to & all_pieces) > 0) || en_passant;
         m.castle = (m.from & (board->bb_black_king | board->bb_white_king)) > 0 &&
             ((bb_slide_e(bb_slide_e(m.from)) | bb_slide_w(bb_slide_w(m.from))) & m.to) > 0;
     }
@@ -401,9 +401,10 @@ void make_move(Board *board, Move move) {
     board->halfmoves++;
     BitBoard flip_pieces = move.to | move.from;
     hash ^= highest_bit(board->en_passant_target) % 8; // xor out the old en passant hash
-    board->en_passant_target = 0;
     bool do_promotion = false;
-    if (move.from & (board->bb_black_pawn | board->bb_white_pawn)) {
+    bool pawn_move = (move.from & (board->bb_black_pawn | board->bb_white_pawn)) > 0;
+    bool en_passant = pawn_move && ((board->en_passant_target & move.to) > 0);
+    if (pawn_move) {
         board->halfmoves = 0;
         // set en passant target if double pawn move
         if ((move.to & bb_slide_s(bb_slide_s(move.from))) > 0) {
@@ -412,9 +413,14 @@ void make_move(Board *board, Move move) {
         } else if ((move.to & bb_slide_n(bb_slide_n(move.from))) > 0) {
             board->en_passant_target = bb_slide_n(move.from);
             hash ^= highest_bit(board->en_passant_target) % 8;  // xor in new en passant hash
-        } else if (move.to & 0xff000000000000fful) {
+        } else if (!en_passant) {
+            board->en_passant_target = 0;
+        }
+        if (move.to & 0xff000000000000fful) {
             do_promotion = true;
         }
+    } else {
+        board->en_passant_target = 0;
     }
     if (move.from & board->bb_white_king) {
         if (board->can_castle_wk) hash ^= zobrist_keys[770];
@@ -426,16 +432,17 @@ void make_move(Board *board, Move move) {
         if (board->can_castle_bq) hash ^= zobrist_keys[769];
         board->can_castle_bk = false;
         board->can_castle_bq = false;
-    } else if (move.from & 0x0000000000000001ul) {
+    // note: flip_pieces used below because someone taking our rooks also clears castle rights
+    } else if (flip_pieces & 0x0000000000000001ul) {
         if (board->can_castle_wq) hash ^= zobrist_keys[771];
         board->can_castle_wq = false;
-    } else if (move.from & 0x0000000000000080ul) {
+    } else if (flip_pieces & 0x0000000000000080ul) {
         if (board->can_castle_wk) hash ^= zobrist_keys[770];
         board->can_castle_wk = false;
-    } else if (move.from & 0x0100000000000000ul) {
+    } else if (flip_pieces & 0x0100000000000000ul) {
         if (board->can_castle_bq) hash ^= zobrist_keys[769];
         board->can_castle_bq = false;
-    } else if (move.from & 0x8000000000000000ul) {
+    } else if (flip_pieces & 0x8000000000000000ul) {
         if (board->can_castle_bk) hash ^= zobrist_keys[768];
         board->can_castle_bk = false;
     }
@@ -481,6 +488,8 @@ void make_move(Board *board, Move move) {
             board->fullmoves++;
         }
         board->whiteToMove = !board->whiteToMove;
+        hash ^= zobrist_keys[772];  // update color-to-play hash
+        board->hash = hash;  // commit hash
         return;
     }
     if (move.capture) {
@@ -491,9 +500,11 @@ void make_move(Board *board, Move move) {
         if ((move.from & board->bb_white_pawn) > 0 && (move.to & board->en_passant_target) > 0) {
             // en passant is the worst chess feature
             cap_mask = ~bb_slide_s(board->en_passant_target);
+            board->en_passant_target = 0;
         } else if ((move.from & board->bb_black_pawn) > 0 && (move.to & board->en_passant_target) > 0) {
             // en passant is the worst chess feature
             cap_mask = ~bb_slide_n(board->en_passant_target);
+            board->en_passant_target = 0;
         } else {
             cap_mask = ~move.to;
         }
@@ -1212,7 +1223,7 @@ Move *get_legal_moves(Board *board, int *len) {
             add_move.from = bb_blocker_sw(piecepos, ~my_pieces);
             bool moving_king = (add_move.from & my_king) > 0;
             bool moving_pawn = (my_pawns & add_move.from) > 0;
-            bool en_passant = moving_pawn && ((board->en_passant_target & bb_slide_s(piecepos)) > 0);
+            bool en_passant = moving_pawn && ((board->en_passant_target & piecepos) > 0);
             bool move_valid = (add_move.from & pins) == 0;  // not moving pinned piece
             move_valid &= (moving_king || !double_check);  // only king moves allowed in double check
             move_valid &= ((all_opp_attacked & piecepos) == 0 || !moving_king);  // if moving king, not to attacked square
@@ -1236,7 +1247,7 @@ Move *get_legal_moves(Board *board, int *len) {
             add_move.from = bb_blocker_se(piecepos, ~my_pieces);
             bool moving_king = (add_move.from & my_king) > 0;
             bool moving_pawn = (my_pawns & add_move.from) > 0;
-            bool en_passant = moving_pawn && ((board->en_passant_target & bb_slide_s(piecepos)) > 0);
+            bool en_passant = moving_pawn && ((board->en_passant_target & piecepos) > 0);
             bool move_valid = (add_move.from & pins) == 0;  // not moving pinned piece
             move_valid &= (moving_king || !double_check);  // only king moves allowed in double check
             move_valid &= ((all_opp_attacked & piecepos) == 0 || !moving_king);  // if moving king, not to attacked square
@@ -1282,7 +1293,7 @@ Move *get_legal_moves(Board *board, int *len) {
             add_move.from = bb_blocker_nw(piecepos, ~my_pieces);
             bool moving_king = (add_move.from & my_king) > 0;
             bool moving_pawn = (my_pawns & add_move.from) > 0;
-            bool en_passant = moving_pawn && ((board->en_passant_target & bb_slide_n(piecepos)) > 0);
+            bool en_passant = moving_pawn && ((board->en_passant_target & piecepos) > 0);
             bool move_valid = (add_move.from & pins) == 0;  // not moving pinned piece
             move_valid &= (moving_king || !double_check);  // only king moves allowed in double check
             move_valid &= ((all_opp_attacked & piecepos) == 0 || !moving_king);  // if moving king, not to attacked square
@@ -1306,7 +1317,7 @@ Move *get_legal_moves(Board *board, int *len) {
             add_move.from = bb_blocker_ne(piecepos, ~my_pieces);
             bool moving_king = (add_move.from & my_king) > 0;
             bool moving_pawn = (my_pawns & add_move.from) > 0;
-            bool en_passant = moving_pawn && ((board->en_passant_target & bb_slide_n(piecepos)) > 0);
+            bool en_passant = moving_pawn && ((board->en_passant_target & piecepos) > 0);
             bool move_valid = (add_move.from & pins) == 0;  // not moving pinned piece
             move_valid &= (moving_king || !double_check);  // only king moves allowed in double check
             move_valid &= ((all_opp_attacked & piecepos) == 0 || !moving_king);  // if moving king, not to attacked square
