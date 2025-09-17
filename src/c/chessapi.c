@@ -88,11 +88,11 @@ int highest_bit(BitBoard v) {
     return (int)r;
 }
 
-PieceType get_piece_from_index(Board *board, int index) {
-    return get_piece_from_bitboard(board, ((BitBoard) 1) << index);
+PieceType chess_get_piece_from_index(Board *board, int index) {
+    return chess_get_piece_from_bitboard(board, ((BitBoard) 1) << index);
 }
 
-PieceType get_piece_from_bitboard(Board *board, BitBoard bitboard) {
+PieceType chess_get_piece_from_bitboard(Board *board, BitBoard bitboard) {
     if (bitboard & (board->bb_white_pawn | board->bb_black_pawn)) return PAWN;
     if (bitboard & (board->bb_white_rook | board->bb_black_rook)) return ROOK;
     if (bitboard & (board->bb_white_queen | board->bb_black_queen)) return QUEEN;
@@ -102,11 +102,11 @@ PieceType get_piece_from_bitboard(Board *board, BitBoard bitboard) {
     return 0;  // empty square!
 }
 
-PlayerColor get_color_from_index(Board *board, int index) {
-    return get_color_from_bitboard(board, ((BitBoard) 1) << index);
+PlayerColor chess_get_color_from_index(Board *board, int index) {
+    return chess_get_color_from_bitboard(board, ((BitBoard) 1) << index);
 }
 
-PieceType get_color_from_bitboard(Board *board, BitBoard bitboard) {
+PieceType chess_get_color_from_bitboard(Board *board, BitBoard bitboard) {
     BitBoard all_pieces_white = board->bb_white_bishop | board->bb_white_king
         | board->bb_white_knight | board->bb_white_pawn | board->bb_white_queen
         | board->bb_white_rook;
@@ -118,11 +118,11 @@ PieceType get_color_from_bitboard(Board *board, BitBoard bitboard) {
     return -1;  // empty square!
 }
 
-int get_index_from_bitboard(BitBoard bitboard) {
+int chess_get_index_from_bitboard(BitBoard bitboard) {
     return highest_bit(bitboard);
 }
 
-BitBoard get_bitboard_from_index(int index) {
+BitBoard chess_get_bitboard_from_index(int index) {
     return ((BitBoard) 1) << index;
 }
 

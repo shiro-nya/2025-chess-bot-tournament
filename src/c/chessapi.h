@@ -238,7 +238,7 @@ That is, index 0 is a1, index 7 is h1, index 63 is h8.
 \param index The index of the square.
 \return A PieceType constant representing the type of piece on that square.
 */
-PieceType get_piece_from_index(Board *board, int index);
+PieceType chess_get_piece_from_index(Board *board, int index);
 
 //! Returns the type of piece on the square set on the given bitboard.
 /*!
@@ -248,7 +248,7 @@ This function expects a bitboard with a single bit set, such as the kind you wou
 \param bitboard The bitboard of the square.
 \return A PieceType constant representing the type of piece on that square.
 */
-PieceType get_piece_from_bitboard(Board *board, BitBoard bitboard);
+PieceType chess_get_piece_from_bitboard(Board *board, BitBoard bitboard);
 
 //! Returns the color of piece on the square at the given index.
 /*!
@@ -259,7 +259,7 @@ That is, index 0 is a1, index 7 is h1, index 63 is h8.
 \param index The index of the square.
 \return A PlayerColor constant representing the color of piece on that square.
 */
-PlayerColor get_color_from_index(Board *board, int index);
+PlayerColor chess_get_color_from_index(Board *board, int index);
 
 //! Returns the color of piece on the square set on the given bitboard.
 /*!
@@ -269,7 +269,7 @@ This function expects a bitboard with a single bit set, such as the kind you wou
 \param bitboard The bitboard of the square.
 \return A PlayerColor constant representing the color of piece on that square.
 */
-PieceType get_color_from_bitboard(Board *board, BitBoard bitboard);
+PieceType chess_get_color_from_bitboard(Board *board, BitBoard bitboard);
 
 //! Returns a square index equivalent to the square indicated by the given bitboard.
 /*!
@@ -278,7 +278,7 @@ This function expects a bitboard with a single bit set, such as the kind you wou
 \param bitboard The bitboard to get the square index of.
 \returns An index from 0-63 indicating the set square.
 */
-int get_index_from_bitboard(BitBoard bitboard);
+int chess_get_index_from_bitboard(BitBoard bitboard);
 
 //! Returns a bitboard equivalent to the square indicated by the given index.
 /*!
@@ -288,7 +288,7 @@ That is, index 0 is a1, index 7 is h1, index 63 is h8.
 \param index The square index to get the bitboard of.
 \returns A bitboard with a single bit set on the associated square.
 */
-BitBoard get_bitboard_from_index(int index);
+BitBoard chess_get_bitboard_from_index(int index);
 
 
 ///// OTHER /////
