@@ -858,7 +858,7 @@ static BitBoard get_pins(Board *board, bool white) {
         } else if ((gen & opp_level_pieces) > 0) {
             pins |= last_my;
             break;
-        } else if ((gen & my_pieces) > 0) {
+        } else {
             break;
         }
     }
@@ -871,7 +871,7 @@ static BitBoard get_pins(Board *board, bool white) {
         } else if ((gen & opp_level_pieces) > 0) {
             pins |= last_my;
             break;
-        } else if ((gen & my_pieces) > 0) {
+        } else {
             break;
         }
     }
@@ -884,7 +884,7 @@ static BitBoard get_pins(Board *board, bool white) {
         } else if ((gen & opp_level_pieces) > 0) {
             pins |= last_my;
             break;
-        } else if ((gen & my_pieces) > 0) {
+        } else {
             break;
         }
     }
@@ -897,7 +897,7 @@ static BitBoard get_pins(Board *board, bool white) {
         } else if ((gen & opp_level_pieces) > 0) {
             pins |= last_my;
             break;
-        } else if ((gen & my_pieces) > 0) {
+        } else {
             break;
         }
     }
@@ -911,7 +911,7 @@ static BitBoard get_pins(Board *board, bool white) {
         } else if ((gen & opp_diag_pieces) > 0) {
             pins |= last_my;
             break;
-        } else if ((gen & my_pieces) > 0) {
+        } else {
             break;
         }
     }
@@ -924,7 +924,7 @@ static BitBoard get_pins(Board *board, bool white) {
         } else if ((gen & opp_diag_pieces) > 0) {
             pins |= last_my;
             break;
-        } else if ((gen & my_pieces) > 0) {
+        } else {
             break;
         }
     }
@@ -937,7 +937,7 @@ static BitBoard get_pins(Board *board, bool white) {
         } else if ((gen & opp_diag_pieces) > 0) {
             pins |= last_my;
             break;
-        } else if ((gen & my_pieces) > 0) {
+        } else {
             break;
         }
     }
@@ -950,7 +950,7 @@ static BitBoard get_pins(Board *board, bool white) {
         } else if ((gen & opp_diag_pieces) > 0) {
             pins |= last_my;
             break;
-        } else if ((gen & my_pieces) > 0) {
+        } else {
             break;
         }
     }
@@ -1284,13 +1284,20 @@ static Move *get_legal_moves(Board *board, int *len) {
         }
         if (pseudo_moves[DIR_NW] & piecepos) {
             add_move.from = bb_blocker_se(piecepos, ~my_pieces);
+            //char movestr[8];
+            //dump_move(movestr, add_move);
+            //printf("testing move: %s\n", movestr);
             bool moving_king = (add_move.from & my_king) > 0;
             bool moving_pawn = (my_pawns & add_move.from) > 0;
             bool en_passant = moving_pawn && ((board->en_passant_target & piecepos) > 0);
             bool move_valid = (add_move.from & pins) == 0;  // not moving pinned piece
+            //printf("valid after pin check: %s\n", move_valid ? "true" : "false");
             move_valid &= (moving_king || !double_check);  // only king moves allowed in double check
+            //printf("valid after double check check: %s\n", move_valid ? "true" : "false");
             move_valid &= ((all_opp_attacked & piecepos) == 0 || !moving_king);  // if moving king, not to attacked square
+            //printf("valid after king move attack squares check: %s\n", move_valid ? "true" : "false");
             move_valid &= (((check_attacks & piecepos) > 0 || moving_king) || !check); // single check allows king move, taking checking piece, blocking
+            //printf("valid after single check valid move check: %s\n", move_valid ? "true" : "false");
             move_valid &= ((!en_passant) || en_passant_valid(board, white));
             if (move_valid) {
                 add_move.capture = (piecepos & opp_pieces) > 0 || en_passant;
