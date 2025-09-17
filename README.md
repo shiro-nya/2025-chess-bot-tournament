@@ -1,5 +1,6 @@
 # 2025-chess-bot-tournament
 ![Tournament banner](/resources/chess_tournament_banner.png)
+
 Welcome to the tournament! This is a fun contest to try writing a small bot to play Chess! Once submitted, all the bots will face off in a tournament to decide the strongest!
 
 If you have questions, or requests for language support, feel free to reach out to me on Discord: @shiro_nya
