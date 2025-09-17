@@ -1,4 +1,5 @@
 # 2025-chess-bot-tournament
+[!Tournament banner](/resources/chess_tournament_banner.png)
 Welcome to the tournament! This is a fun contest to try writing a small bot to play Chess! Once submitted, all the bots will face off in a tournament to decide the strongest!
 
 If you have questions, or requests for language support, feel free to reach out to me on Discord: @shiro_nya
@@ -26,3 +27,6 @@ Please read this section carefully! It outlines what is available to your bot, a
 ## FAQ
 - Can you add support for my language?
   - I'll consider adding support for languages granted the token counter supports them. I welcome community submissions of language interfaces to the provided API as long as they don't provide additional functionality, if you end up making and sharing one then I'll let people use it for free (i.e. it won't count toward your token limit).
+
+## Credits
+- Sebastian Lague, whose [video](https://www.youtube.com/watch?v=Ne40a5LkK6A) inspired this contest!
