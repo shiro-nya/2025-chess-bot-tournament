@@ -276,7 +276,7 @@ PlayerColor chess_get_color_from_bitboard(Board *board, BitBoard bitboard);
 This function expects a bitboard with a single bit set, such as the kind you would get from a Move struct.
 \sa get_bitboard_from_index()
 \param bitboard The bitboard to get the square index of.
-\returns An index from 0-63 indicating the set square.
+\return An index from 0-63 indicating the set square.
 */
 int chess_get_index_from_bitboard(BitBoard bitboard);
 
@@ -286,12 +286,20 @@ Square index travels from 0 left-to-right, bottom-to-top from white's perspectiv
 That is, index 0 is a1, index 7 is h1, index 63 is h8.
 \sa get_index_from_bitboard()
 \param index The square index to get the bitboard of.
-\returns A bitboard with a single bit set on the associated square.
+\return A bitboard with a single bit set on the associated square.
 */
 BitBoard chess_get_bitboard_from_index(int index);
 
 
 ///// OTHER /////
+
+
+//! Returns the last move made by the opponent.
+/*!
+If no moves have been made yet, the returned move will have all its fields set to zero.
+\return The move made by the opponent on the last ply.
+*/
+Move chess_get_opponent_move();
 
 //! Free function for an array of moves.
 /*!

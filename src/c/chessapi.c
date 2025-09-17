@@ -35,7 +35,8 @@ typedef struct {
     long wtime;
     long btime;
     clock_t turn_started_time;
-    Move latest_move;
+    Move latest_pushed_move;
+    Move latest_opponent_move;
     pthread_mutex_t mutex;
     sem_t intermission_mutex;
 } InternalAPI;
@@ -722,11 +723,13 @@ static void *uci_process(void *arg) {
                 }
                 if (token != NULL && !strcmp(token, "moves")) {
                     char *move = strtok(NULL, " ");
+                    Move m;
                     while (move != NULL) {
-                        Move m = load_move(move, API->shared_board);
+                        m = load_move(move, API->shared_board);
                         make_move(API->shared_board, m);
                         move = strtok(NULL, " ");
                     }
+                    API->latest_opponent_move = m;
                 }
                 pthread_mutex_unlock(&API->mutex);
             } else if (!strcmp(token, "go")) {
@@ -765,10 +768,10 @@ static void uci_start(pthread_t *thread_id) {
     pthread_create(thread_id, NULL, &uci_process, NULL);
 }
 
-// gets API->latest_move and formats in standard game notation, storing result in buffer
+// gets API->latest_pushed_move and formats in standard game notation, storing result in buffer
 // buffer should be at least 7 bytes
 static void dump_api_move(char *buffer) {
-    dump_move(buffer, API->latest_move);
+    dump_move(buffer, API->latest_pushed_move);
 }
 
 static void uci_info() {
@@ -789,7 +792,7 @@ static void uci_finished_searching() {
 
 static void interface_push(Move move) {
     pthread_mutex_lock(&API->mutex);
-    API->latest_move = move;
+    API->latest_pushed_move = move;
     uci_info();
     pthread_mutex_unlock(&API->mutex);
 }
@@ -827,6 +830,13 @@ static long interface_get_elapsed_time_millis() {
     long millis = (clock() - API->turn_started_time) / (CLOCKS_PER_SEC / 1000);
     pthread_mutex_unlock(&API->mutex);
     return millis;
+}
+
+static Move interface_get_opponent_move() {
+    pthread_mutex_lock(&API->mutex);
+    Move move = API->latest_opponent_move;
+    pthread_mutex_unlock(&API->mutex);
+    return move;
 }
 
 static bool is_white_turn(Board *board) {
@@ -1617,6 +1627,7 @@ static void start_chess_api() {
     API->shared_board = NULL;
     API->wtime = 0;
     API->btime = 0;
+    memset(&API->latest_opponent_move, 0, sizeof(Move));
     pthread_mutex_init(&API->mutex, NULL);
     sem_init(&API->intermission_mutex, 0, 0);
     // setup zobrist keys
@@ -1797,4 +1808,9 @@ bool chess_can_kingside_castle(Board *board, PlayerColor color) {
 
 bool chess_can_queenside_castle(Board *board, PlayerColor color) {
     return (color == BLACK) ? board->can_castle_bq : board->can_castle_wq;
+}
+
+Move chess_get_opponent_move() {
+    if (API == NULL) start_chess_api();
+    return interface_get_opponent_move();
 }
