@@ -1226,6 +1226,7 @@ static Move *get_legal_moves(Board *board, int *len) {
         add_move.to = piecepos;
         add_move.castle = false;
         if (double_check && ((piecepos & near_my_king) == 0)) {  // only very specific moves are valid
+            piecepos <<= 1;
             continue;
         }
         if (pseudo_moves[DIR_N] & piecepos) {
@@ -1378,12 +1379,19 @@ static Move *get_legal_moves(Board *board, int *len) {
         add_move.promotion = 0;
         if (pseudo_moves[DIR_E] & piecepos) {
             add_move.from = bb_blocker_w(piecepos, ~my_pieces);
+            //char movestr[8];
+            //dump_move(movestr, add_move);
+            //printf("testing move: %s\n", movestr);
             bool moving_king = (add_move.from & my_king) > 0;
             bool moving_pawn = (my_pawns & add_move.from) > 0;
             bool move_valid = (add_move.from & pins) == 0;  // not moving pinned piece
+            //printf("valid after pin check: %s\n", move_valid ? "true" : "false");
             move_valid &= (moving_king || !double_check);  // only king moves allowed in double check
+            //printf("valid after double check check: %s\n", move_valid ? "true" : "false");
             move_valid &= ((all_opp_attacked & piecepos) == 0 || !moving_king);  // if moving king, not to attacked square
+            //printf("valid after king move attack squares check: %s\n", move_valid ? "true" : "false");
             move_valid &= (((check_attacks & piecepos) > 0 || moving_king) || !check); // single check allows king move, taking checking piece, blocking
+            //printf("valid after single check valid move check: %s\n", move_valid ? "true" : "false");
             if (move_valid) {
                 add_move.capture = (piecepos & opp_pieces) > 0;
                 moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
