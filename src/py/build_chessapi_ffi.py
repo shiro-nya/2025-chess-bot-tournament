@@ -50,6 +50,12 @@ long chess_get_time_millis();
 long chess_get_opponent_time_millis();
 long chess_get_elapsed_time_millis();
 void chess_free_moves_array(Move *moves);
+PieceType chess_get_piece_from_index(Board *board, int index);
+PieceType chess_get_piece_from_bitboard(Board *board, BitBoard bitboard);
+PlayerColor chess_get_color_from_index(Board *board, int index);
+PieceType chess_get_color_from_bitboard(Board *board, BitBoard bitboard);
+int chess_get_index_from_bitboard(BitBoard bitboard);
+BitBoard chess_get_bitboard_from_index(int index);
 """)
 
 ffibuilder.set_source("_chessapi_cffi",

@@ -115,6 +115,18 @@ class Board:
 
     def get_bitboard(self, color: PlayerColor, piece_type: PieceType) -> BitBoard:
         return lib.chess_get_bitboard(self.ptr, color, piece_type)
+    
+    def get_piece_from_index(self, index: int) -> PieceType:
+        return lib.chess_get_piece_from_index(self.ptr, index)
+
+    def get_piece_from_bitboard(self, bitboard: BitBoard) -> PieceType:
+        return lib.chess_get_piece_from_bitboard(self.ptr, bitboard)
+
+    def get_color_from_index(self, index: int) -> PlayerColor:
+        return lib.chess_get_color_from_index(self.ptr, index)
+
+    def get_color_from_bitboard(self, bitboard: BitBoard) -> PieceType:
+        return lib.chess_get_color_from_bitboard(self.ptr, bitboard)
 
 
 class API:
@@ -146,3 +158,11 @@ class API:
     @classmethod
     def get_elapsed_time_millis(cls) -> int:
         return lib.chess_get_elapsed_time_millis()
+    
+    @classmethod
+    def get_index_from_bitboard(cls, bitboard: BitBoard) -> int:
+        return lib.chess_get_index_from_bitboard(bitboard)
+    
+    @classmethod
+    def get_bitboard_from_index(cls, index: int) -> BitBoard:
+        return lib.chess_get_bitboard_from_index(index)
