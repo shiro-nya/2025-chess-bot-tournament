@@ -681,7 +681,9 @@ static void *uci_process(void *arg) {
     while (running) {
         scanf("%[\r\n]", line);
         memset(&line, 0, 4096);
-        scanf("%[^\r\n]", line);
+        if (scanf("%[^\r\n]", line) < 0) {
+            break;
+        }
         line[4095] = 0;
         char *token = strtok(line, " ");
         while (running && (token != NULL)) {
