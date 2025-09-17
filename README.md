@@ -32,3 +32,4 @@ Please read this section carefully! It outlines what is available to your bot, a
 
 ## Credits
 - Sebastian Lague, whose [video](https://www.youtube.com/watch?v=Ne40a5LkK6A) inspired this contest!
+- Those who have kindly contributed bindings to the Chess API
