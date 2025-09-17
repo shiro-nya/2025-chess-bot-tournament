@@ -159,6 +159,10 @@ class API:
     @classmethod
     def get_bitboard_from_index(cls, index: int) -> BitBoard:
         return lib.chess_get_bitboard_from_index(index).value
+    
+    @classmethod
+    def get_opponent_move(cls) -> Move:
+        return lib.chess_get_opponent_move()
 
 
 # set type restrictions
@@ -216,3 +220,5 @@ lib.chess_get_index_from_bitboard.argtypes = (_BitBoard,)
 lib.chess_get_index_from_bitboard.restype = c_int
 lib.chess_get_bitboard_from_index.argtypes = (c_int,)
 lib.chess_get_bitboard_from_index.restype = _BitBoard
+lib.chess_get_opponent_move.argtypes = ()
+lib.chess_get_opponent_move.restype = Move
