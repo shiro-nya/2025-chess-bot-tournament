@@ -6,7 +6,7 @@ Welcome to the tournament! This is a fun contest to try writing a small bot to p
 If you have questions, or requests for language support, feel free to reach out to me on Discord: @shiro_nya
 
 ## Change Log
-- If something changes during the contest (bug fixed in API, rules clarification), I will make a note of it here.
+- 2025/09/17: Six functions have been added to the Chess API to make Bitboards slightly easier to use.
 
 ## How to participate
 - Install a development environment for one of the supported languages: Python, C, C++ (the C API should be compatible)
