@@ -846,6 +846,7 @@ static BitBoard get_pins(Board *board, bool white) {
     BitBoard all_pieces_black = board->bb_black_bishop | board->bb_black_king
         | board->bb_black_knight | board->bb_black_pawn | board->bb_black_queen
         | board->bb_black_rook;
+    BitBoard all_pieces = all_pieces_black | all_pieces_white;
     BitBoard my_pieces = white ? all_pieces_white : all_pieces_black;
     BitBoard opp_diag_pieces = white ? black_diag_pieces : white_diag_pieces;
     BitBoard opp_level_pieces = white ? black_level_pieces : white_level_pieces;
@@ -860,7 +861,7 @@ static BitBoard get_pins(Board *board, bool white) {
         } else if ((gen & opp_level_pieces) > 0) {
             pins |= last_my;
             break;
-        } else {
+        } else if ((gen & all_pieces) > 0) {
             break;
         }
     }
@@ -873,7 +874,7 @@ static BitBoard get_pins(Board *board, bool white) {
         } else if ((gen & opp_level_pieces) > 0) {
             pins |= last_my;
             break;
-        } else {
+        } else if ((gen & all_pieces) > 0) {
             break;
         }
     }
@@ -886,7 +887,7 @@ static BitBoard get_pins(Board *board, bool white) {
         } else if ((gen & opp_level_pieces) > 0) {
             pins |= last_my;
             break;
-        } else {
+        } else if ((gen & all_pieces) > 0) {
             break;
         }
     }
@@ -899,7 +900,7 @@ static BitBoard get_pins(Board *board, bool white) {
         } else if ((gen & opp_level_pieces) > 0) {
             pins |= last_my;
             break;
-        } else {
+        } else if ((gen & all_pieces) > 0) {
             break;
         }
     }
@@ -913,7 +914,7 @@ static BitBoard get_pins(Board *board, bool white) {
         } else if ((gen & opp_diag_pieces) > 0) {
             pins |= last_my;
             break;
-        } else {
+        } else if ((gen & all_pieces) > 0) {
             break;
         }
     }
@@ -926,7 +927,7 @@ static BitBoard get_pins(Board *board, bool white) {
         } else if ((gen & opp_diag_pieces) > 0) {
             pins |= last_my;
             break;
-        } else {
+        } else if ((gen & all_pieces) > 0) {
             break;
         }
     }
@@ -939,7 +940,7 @@ static BitBoard get_pins(Board *board, bool white) {
         } else if ((gen & opp_diag_pieces) > 0) {
             pins |= last_my;
             break;
-        } else {
+        } else if ((gen & all_pieces) > 0) {
             break;
         }
     }
@@ -952,7 +953,7 @@ static BitBoard get_pins(Board *board, bool white) {
         } else if ((gen & opp_diag_pieces) > 0) {
             pins |= last_my;
             break;
-        } else {
+        } else if ((gen & all_pieces) > 0) {
             break;
         }
     }
