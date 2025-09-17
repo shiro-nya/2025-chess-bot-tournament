@@ -374,9 +374,9 @@ static void set_board_from_fen(Board *board, char *fen) {
             ep_square = 0;
             break;
         } else if (*use_fen >= 'a' && *use_fen <= 'h') {
-            ep_square <<= (8 * (*use_fen - 'a'));
+            ep_square <<= (*use_fen - 'a');
         } else if (*use_fen >= '1' && *use_fen <= '7') {
-            ep_square <<= (*use_fen - '1');
+            ep_square <<= (8 * (*use_fen - '1'));
         }
         use_fen++;
     }
@@ -848,7 +848,7 @@ static bool is_white_turn(Board *board) {
     last_my = 0; \
     for (int i = 0; i < 7; i++) { \
         gen = bb_slide_ ## dir (gen); \
-        if ((gen & my_pieces) > 0 && last_my == 0) { \
+        if ((gen & all_pieces) > 0 && last_my == 0) { \
             last_my = gen; \
         } else if ((gen & opp_attackers) > 0) { \
             pins |= last_my; \
@@ -1175,7 +1175,8 @@ static Move *get_legal_moves(Board *board, int *len) {
     BitBoard pins_ew = get_pins_ew(board, white);
     BitBoard pins_nesw = get_pins_nesw(board, white);
     BitBoard pins_nwse = get_pins_nwse(board, white);
-    BitBoard pins_all = pins_ns | pins_ew | pins_nesw | pins_nwse;
+    BitBoard pins_not_ns = pins_ew | pins_nesw | pins_nwse;  // en passant...
+    BitBoard pins_all = pins_ns | pins_not_ns;
     // map to origin pieces by ray
     // create some useful bbs
     BitBoard all_pieces_white = board->bb_white_bishop | board->bb_white_king
@@ -1260,13 +1261,14 @@ static Move *get_legal_moves(Board *board, int *len) {
             bool moving_king = (add_move.from & my_king) > 0;
             bool moving_pawn = (my_pawns & add_move.from) > 0;
             bool en_passant = moving_pawn && ((board->en_passant_target & piecepos) > 0);
+            BitBoard cap_pos = en_passant ? bb_slide_s(piecepos) : piecepos;
             bool move_valid = (add_move.from & pins_ns) == 0 || ((bb_flood_n(add_move.from, empty, true) | bb_flood_s(add_move.from, empty, true)) & piecepos) > 0;  // not moving pinned piece
             move_valid &= (add_move.from & pins_ew) == 0 || ((bb_flood_e(add_move.from, empty, true) | bb_flood_w(add_move.from, empty, true)) & piecepos) > 0;  // not moving pinned piece
             move_valid &= (add_move.from & pins_nesw) == 0 || ((bb_flood_ne(add_move.from, empty, true) | bb_flood_sw(add_move.from, empty, true)) & piecepos) > 0;  // not moving pinned piece
             move_valid &= (add_move.from & pins_nwse) == 0 || ((bb_flood_nw(add_move.from, empty, true) | bb_flood_se(add_move.from, empty, true)) & piecepos) > 0;  // not moving pinned piece
             move_valid &= (moving_king || !double_check);  // only king moves allowed in double check
             move_valid &= ((all_opp_attacked & piecepos) == 0 || !moving_king);  // if moving king, not to attacked square
-            move_valid &= (((check_attacks & piecepos) > 0 || moving_king) || !check); // single check allows king move, taking checking piece, blocking
+            move_valid &= (((check_attacks & ((cap_pos & ~pins_not_ns) | piecepos)) > 0 || moving_king) || !check); // single check allows king move, taking checking piece, blocking
             move_valid &= ((!en_passant) || en_passant_valid(board, white));
             if (move_valid) {
                 add_move.capture = (piecepos & opp_pieces) > 0 || en_passant;
@@ -1290,6 +1292,7 @@ static Move *get_legal_moves(Board *board, int *len) {
             bool moving_king = (add_move.from & my_king) > 0;
             bool moving_pawn = (my_pawns & add_move.from) > 0;
             bool en_passant = moving_pawn && ((board->en_passant_target & piecepos) > 0);
+            BitBoard cap_pos = en_passant ? bb_slide_s(piecepos) : piecepos;
             bool move_valid = (add_move.from & pins_ns) == 0 || ((bb_flood_n(add_move.from, empty, true) | bb_flood_s(add_move.from, empty, true)) & piecepos) > 0;  // not moving pinned piece
             move_valid &= (add_move.from & pins_ew) == 0 || ((bb_flood_e(add_move.from, empty, true) | bb_flood_w(add_move.from, empty, true)) & piecepos) > 0;  // not moving pinned piece
             move_valid &= (add_move.from & pins_nesw) == 0 || ((bb_flood_ne(add_move.from, empty, true) | bb_flood_sw(add_move.from, empty, true)) & piecepos) > 0;  // not moving pinned piece
@@ -1299,7 +1302,7 @@ static Move *get_legal_moves(Board *board, int *len) {
             //printf("valid after double check check: %s\n", move_valid ? "true" : "false");
             move_valid &= ((all_opp_attacked & piecepos) == 0 || !moving_king);  // if moving king, not to attacked square
             //printf("valid after king move attack squares check: %s\n", move_valid ? "true" : "false");
-            move_valid &= (((check_attacks & piecepos) > 0 || moving_king) || !check); // single check allows king move, taking checking piece, blocking
+            move_valid &= (((check_attacks & ((cap_pos & ~pins_not_ns) | piecepos)) > 0 || moving_king) || !check); // single check allows king move, taking checking piece, blocking
             //printf("valid after single check valid move check: %s\n", move_valid ? "true" : "false");
             move_valid &= ((!en_passant) || en_passant_valid(board, white));
             if (move_valid) {
@@ -1353,13 +1356,14 @@ static Move *get_legal_moves(Board *board, int *len) {
             bool moving_king = (add_move.from & my_king) > 0;
             bool moving_pawn = (my_pawns & add_move.from) > 0;
             bool en_passant = moving_pawn && ((board->en_passant_target & piecepos) > 0);
+            BitBoard cap_pos = en_passant ? bb_slide_n(piecepos) : piecepos;
             bool move_valid = (add_move.from & pins_ns) == 0 || ((bb_flood_n(add_move.from, empty, true) | bb_flood_s(add_move.from, empty, true)) & piecepos) > 0;  // not moving pinned piece
             move_valid &= (add_move.from & pins_ew) == 0 || ((bb_flood_e(add_move.from, empty, true) | bb_flood_w(add_move.from, empty, true)) & piecepos) > 0;  // not moving pinned piece
             move_valid &= (add_move.from & pins_nesw) == 0 || ((bb_flood_ne(add_move.from, empty, true) | bb_flood_sw(add_move.from, empty, true)) & piecepos) > 0;  // not moving pinned piece
             move_valid &= (add_move.from & pins_nwse) == 0 || ((bb_flood_nw(add_move.from, empty, true) | bb_flood_se(add_move.from, empty, true)) & piecepos) > 0;  // not moving pinned piece
             move_valid &= (moving_king || !double_check);  // only king moves allowed in double check
             move_valid &= ((all_opp_attacked & piecepos) == 0 || !moving_king);  // if moving king, not to attacked square
-            move_valid &= (((check_attacks & piecepos) > 0 || moving_king) || !check); // single check allows king move, taking checking piece, blocking
+            move_valid &= (((check_attacks & ((cap_pos & ~pins_not_ns) | piecepos)) > 0 || moving_king) || !check); // single check allows king move, taking checking piece, blocking
             move_valid &= ((!en_passant) || en_passant_valid(board, white));
             if (move_valid) {
                 add_move.capture = (piecepos & opp_pieces) > 0 || en_passant;
@@ -1380,13 +1384,14 @@ static Move *get_legal_moves(Board *board, int *len) {
             bool moving_king = (add_move.from & my_king) > 0;
             bool moving_pawn = (my_pawns & add_move.from) > 0;
             bool en_passant = moving_pawn && ((board->en_passant_target & piecepos) > 0);
+            BitBoard cap_pos = en_passant ? bb_slide_n(piecepos) : piecepos;
             bool move_valid = (add_move.from & pins_ns) == 0 || ((bb_flood_n(add_move.from, empty, true) | bb_flood_s(add_move.from, empty, true)) & piecepos) > 0;  // not moving pinned piece
             move_valid &= (add_move.from & pins_ew) == 0 || ((bb_flood_e(add_move.from, empty, true) | bb_flood_w(add_move.from, empty, true)) & piecepos) > 0;  // not moving pinned piece
             move_valid &= (add_move.from & pins_nesw) == 0 || ((bb_flood_ne(add_move.from, empty, true) | bb_flood_sw(add_move.from, empty, true)) & piecepos) > 0;  // not moving pinned piece
             move_valid &= (add_move.from & pins_nwse) == 0 || ((bb_flood_nw(add_move.from, empty, true) | bb_flood_se(add_move.from, empty, true)) & piecepos) > 0;  // not moving pinned piece
             move_valid &= (moving_king || !double_check);  // only king moves allowed in double check
             move_valid &= ((all_opp_attacked & piecepos) == 0 || !moving_king);  // if moving king, not to attacked square
-            move_valid &= (((check_attacks & piecepos) > 0 || moving_king) || !check); // single check allows king move, taking checking piece, blocking
+            move_valid &= (((check_attacks & ((cap_pos & ~pins_not_ns) | piecepos)) > 0 || moving_king) || !check); // single check allows king move, taking checking piece, blocking
             move_valid &= ((!en_passant) || en_passant_valid(board, white));
             if (move_valid) {
                 add_move.capture = (piecepos & opp_pieces) > 0 || en_passant;
