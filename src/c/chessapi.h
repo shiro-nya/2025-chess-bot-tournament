@@ -269,7 +269,7 @@ This function expects a bitboard with a single bit set, such as the kind you wou
 \param bitboard The bitboard of the square.
 \return A PlayerColor constant representing the color of piece on that square.
 */
-PieceType chess_get_color_from_bitboard(Board *board, BitBoard bitboard);
+PlayerColor chess_get_color_from_bitboard(Board *board, BitBoard bitboard);
 
 //! Returns a square index equivalent to the square indicated by the given bitboard.
 /*!

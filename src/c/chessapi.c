@@ -69,10 +69,10 @@ struct Board {
     uint64_t hash;
 };
 
-InternalAPI *API = NULL;
-unsigned long zobrist_keys[781];
+static InternalAPI *API = NULL;
+static unsigned long zobrist_keys[781];
 
-int highest_bit(BitBoard v) {
+static int highest_bit(BitBoard v) {
     const unsigned long b[] = {0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000, 0xFFFFFFFF00000000};
     const unsigned long S[] = {1, 2, 4, 8, 16, 32};
     int i;
@@ -106,7 +106,7 @@ PlayerColor chess_get_color_from_index(Board *board, int index) {
     return chess_get_color_from_bitboard(board, ((BitBoard) 1) << index);
 }
 
-PieceType chess_get_color_from_bitboard(Board *board, BitBoard bitboard) {
+PlayerColor chess_get_color_from_bitboard(Board *board, BitBoard bitboard) {
     BitBoard all_pieces_white = board->bb_white_bishop | board->bb_white_king
         | board->bb_white_knight | board->bb_white_pawn | board->bb_white_queen
         | board->bb_white_rook;
@@ -126,12 +126,12 @@ BitBoard chess_get_bitboard_from_index(int index) {
     return ((BitBoard) 1) << index;
 }
 
-uint64_t rand_long() {
+static uint64_t rand_long() {
     return ((uint64_t) rand()) ^ (((uint64_t) rand()) << 16) ^ (((uint64_t) rand()) << 32) ^ (((uint64_t) rand()) << 48);
 }
 
 // Returns true if the boards are equal.
-bool board_equals(Board *board1, Board *board2) {
+static bool board_equals(Board *board1, Board *board2) {
     return (board1->hash == board2->hash)
         && (board1->whiteToMove == board2->whiteToMove)
         && (board1->bb_white_pawn == board2->bb_white_pawn)
@@ -155,7 +155,7 @@ bool board_equals(Board *board1, Board *board2) {
 
 // creates a Move from a [movestr] in standard game notation and returns it
 // if [board] is given, will augment move with flags; NULL is okay too
-Move load_move(char *movestr, Board *board) {
+static Move load_move(char *movestr, Board *board) {
     Move m;
     m.from = 1ul << ((movestr[0] - 'a') + 8*(movestr[1] - '1'));
     m.to = 1ul << ((movestr[2] - 'a') + 8*(movestr[3] - '1'));
@@ -188,7 +188,7 @@ Move load_move(char *movestr, Board *board) {
 
 // formats [move] in standard game notation, storing result in [buffer]
 // [buffer] should be at least 7 bytes
-void dump_move(char *buffer, Move move) {
+static void dump_move(char *buffer, Move move) {
     memset(buffer, '\0', 7);
     int sq_from = highest_bit(move.from);
     int sq_to = highest_bit(move.to);
@@ -211,7 +211,7 @@ void dump_move(char *buffer, Move move) {
 }
 
 // Safely free a board from memory.
-void free_board(Board *board) {
+static void free_board(Board *board) {
     if (board->bb_white_moves != NULL) {
         free(board->bb_white_moves);
     }
@@ -224,7 +224,7 @@ void free_board(Board *board) {
     free(board);
 }
 
-void set_board_from(Board *dest, Board *src) {
+static void set_board_from(Board *dest, Board *src) {
     dest->bb_black_bishop = src->bb_black_bishop;
     dest->bb_black_rook = src->bb_black_rook;
     dest->bb_black_queen = src->bb_black_queen;
@@ -240,7 +240,7 @@ void set_board_from(Board *dest, Board *src) {
 }
 
 // Set the Zobrist hash for [board] from its current position
-void calc_zobrist(Board *board) {
+static void calc_zobrist(Board *board) {
     uint64_t hash = 0;
     BitBoard board0 = board->bb_black_pawn;
     BitBoard board1 = board->bb_black_rook;
@@ -290,7 +290,7 @@ void calc_zobrist(Board *board) {
 }
 
 // Clears all piece bitboards for the [board], and clears the pseudo-legal move caches.
-void clear_board(Board *board) {
+static void clear_board(Board *board) {
     board->bb_black_bishop = 0;
     board->bb_black_king = 0;
     board->bb_black_queen = 0;
@@ -314,7 +314,7 @@ void clear_board(Board *board) {
     calc_zobrist(board);
 }
 
-void set_board_from_fen(Board *board, char *fen) {
+static void set_board_from_fen(Board *board, char *fen) {
     // if no fen given, use starting pos
     char *use_fen = (fen != NULL) ? fen : "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     clear_board(board);
@@ -400,7 +400,7 @@ void set_board_from_fen(Board *board, char *fen) {
 }
 
 // Makes a new, blank board. Caller responsible for freeing.
-Board *create_board() {
+static Board *create_board() {
     Board *board = (Board *)malloc(sizeof(Board));
     memset(board, 0, sizeof(Board));
     clear_board(board);
@@ -417,7 +417,7 @@ Board *create_board() {
 }
 
 // Creates a shallow copy of the given board
-Board *clone_board(Board * board) {
+static Board *clone_board(Board * board) {
     Board *new_board = (Board *)malloc(sizeof(Board));
     memcpy(new_board, board, sizeof(Board));
     new_board->bb_black_moves = NULL;
@@ -429,7 +429,7 @@ Board *clone_board(Board * board) {
 // Updates the [board] with the result of the given [move].
 // The previous board can be restored with undo_move().
 // Moves are presumed legal.
-void make_move(Board *board, Move move) {
+static void make_move(Board *board, Move move) {
     Board *saved_board = clone_board(board);
     saved_board->last_board = board->last_board;
     board->last_board = saved_board;
@@ -640,7 +640,7 @@ void make_move(Board *board, Move move) {
 }
 
 // Restores the previous board state for [board] if it exists.
-void undo_move(Board *board) {
+static void undo_move(Board *board) {
     if (board->last_board == NULL) return;  // no moves to undo
     // get the previous board
     Board *restore = board->last_board;
@@ -675,7 +675,7 @@ void undo_move(Board *board) {
 }
 
 // Listens for and responds to UCI messages from the GUI. Updates API state as needed.
-void *uci_process(void *arg) {
+static void *uci_process(void *arg) {
     char line[4096];
     bool running = true;
     while (running) {
@@ -759,24 +759,24 @@ void *uci_process(void *arg) {
 }
 
 // Start the UCI listener.
-void uci_start(pthread_t *thread_id) {
+static void uci_start(pthread_t *thread_id) {
     pthread_create(thread_id, NULL, &uci_process, NULL);
 }
 
 // gets API->latest_move and formats in standard game notation, storing result in buffer
 // buffer should be at least 7 bytes
-void dump_api_move(char *buffer) {
+static void dump_api_move(char *buffer) {
     dump_move(buffer, API->latest_move);
 }
 
-void uci_info() {
+static void uci_info() {
     char move[8];
     dump_api_move(move);
     printf("info currmove %s\n", move);
     fflush(stdout);
 }
 
-void uci_finished_searching() {
+static void uci_finished_searching() {
     char move[8];
     dump_api_move(move);
     printf("bestmove %s\n", move);
@@ -785,54 +785,54 @@ void uci_finished_searching() {
 
 // any API methods that require thread safing are placed here
 
-void interface_push(Move move) {
+static void interface_push(Move move) {
     pthread_mutex_lock(&API->mutex);
     API->latest_move = move;
     uci_info();
     pthread_mutex_unlock(&API->mutex);
 }
 
-void interface_done() {
+static void interface_done() {
     pthread_mutex_lock(&API->mutex);
     uci_finished_searching();
     pthread_mutex_unlock(&API->mutex);
     sem_wait(&API->intermission_mutex);
 }
 
-Board *interface_get_board() {
+static Board *interface_get_board() {
     pthread_mutex_lock(&API->mutex);
     Board *board = clone_board(API->shared_board);
     pthread_mutex_unlock(&API->mutex);
     return board;
 }
 
-long interface_get_time_millis() {
+static long interface_get_time_millis() {
     pthread_mutex_lock(&API->mutex);
     long millis = API->shared_board->whiteToMove ? API->wtime : API->btime;
     pthread_mutex_unlock(&API->mutex);
     return millis;
 }
 
-long interface_get_opponent_time_millis() {
+static long interface_get_opponent_time_millis() {
     pthread_mutex_lock(&API->mutex);
     long millis = API->shared_board->whiteToMove ? API->btime : API->wtime;
     pthread_mutex_unlock(&API->mutex);
     return millis;
 }
 
-long interface_get_elapsed_time_millis() {
+static long interface_get_elapsed_time_millis() {
     pthread_mutex_lock(&API->mutex);
     long millis = (clock() - API->turn_started_time) / (CLOCKS_PER_SEC / 1000);
     pthread_mutex_unlock(&API->mutex);
     return millis;
 }
 
-bool is_white_turn(Board *board) {
+static bool is_white_turn(Board *board) {
     return board->whiteToMove;
 }
 
 // Returns all pinned pieces for white if [white], otherwise for black.
-BitBoard get_pins(Board *board, bool white) {
+static BitBoard get_pins(Board *board, bool white) {
     BitBoard pins = 0;
     BitBoard white_diag_pieces = board->bb_white_bishop | board->bb_white_queen;
     BitBoard white_level_pieces = board->bb_white_rook | board->bb_white_queen;
@@ -963,7 +963,7 @@ BitBoard get_pins(Board *board, bool white) {
 // Squares in [exclude] are overridden and considered empty.
 // If [exclude_pawn_moves], pawn forward advances are not included (effectively making this only return attacks).
 // Caller must free move array.
-BitBoard *get_pseudo_legal_moves(Board *board, bool white, bool all_attacked, BitBoard exclude, bool exclude_pawn_moves) {
+static BitBoard *get_pseudo_legal_moves(Board *board, bool white, bool all_attacked, BitBoard exclude, bool exclude_pawn_moves) {
     BitBoard *dirmoves = malloc(16*sizeof(BitBoard));
     if ((!all_attacked) && (exclude == 0)) {
         if (white && board->bb_white_moves) {
@@ -1073,7 +1073,7 @@ BitBoard *get_pseudo_legal_moves(Board *board, bool white, bool all_attacked, Bi
 }
 
 // Returns true if the king is in check on [board]. Checks this for white if [white], otherwise checks for black.
-bool in_check(Board *board, bool white) {
+static bool in_check(Board *board, bool white) {
     BitBoard *moves = get_pseudo_legal_moves(board, !white, true, 0, true);
     BitBoard king_square = white ? board->bb_white_king : board->bb_black_king;
     for (int dir = 0; dir < 16; dir++) {
@@ -1084,7 +1084,7 @@ bool in_check(Board *board, bool white) {
 }
 
 // Returns the number of pieces on [board] which attack [target]. Checks this for black attackers if [defenderWhite], otherwise checks for white attackers.
-int num_attackers(Board *board, BitBoard target, bool defenderWhite) {
+static int num_attackers(Board *board, BitBoard target, bool defenderWhite) {
     BitBoard *moves = get_pseudo_legal_moves(board, !defenderWhite, true, 0, true);
     BitBoard king_square = defenderWhite ? board->bb_white_king : board->bb_black_king;
     int count = 0;
@@ -1096,7 +1096,7 @@ int num_attackers(Board *board, BitBoard target, bool defenderWhite) {
 }
 
 // Returns valid positions from which an En Passant move can be performed on [board] by white if [white], otherwise by black
-BitBoard en_passant_valid(Board *board, bool white) {
+static BitBoard en_passant_valid(Board *board, bool white) {
     BitBoard all_pieces_white = board->bb_white_bishop | board->bb_white_king
         | board->bb_white_knight | board->bb_white_pawn | board->bb_white_queen
         | board->bb_white_rook;
@@ -1117,7 +1117,7 @@ BitBoard en_passant_valid(Board *board, bool white) {
 
 // Returns squares on [board] which, if in single check, moving to would eliminate the check against white's king if [defenderWhite], black otherwise.
 // Only valid if single check situation
-BitBoard single_check_block_tiles(Board *board, bool defenderWhite) {
+static BitBoard single_check_block_tiles(Board *board, bool defenderWhite) {
     BitBoard *moves = get_pseudo_legal_moves(board, !defenderWhite, true, 0, true);
     BitBoard all_pieces_white = board->bb_white_bishop | board->bb_white_king
         | board->bb_white_knight | board->bb_white_pawn | board->bb_white_queen
@@ -1155,7 +1155,7 @@ BitBoard single_check_block_tiles(Board *board, bool defenderWhite) {
 }
 
 // adds [move] to array [moves], automatically adjusting the max array size tracked by [maxlen_moves] as [len_moves] grows
-Move *add_to_moves(Move *moves, size_t *len_moves, size_t *maxlen_moves, Move move) {
+static Move *add_to_moves(Move *moves, size_t *len_moves, size_t *maxlen_moves, Move move) {
     moves[*len_moves] = move;
     (*len_moves)++;
     if (*len_moves == *maxlen_moves) {
@@ -1167,7 +1167,7 @@ Move *add_to_moves(Move *moves, size_t *len_moves, size_t *maxlen_moves, Move mo
 
 // Returns the fully legal moves on [board].
 // Caller responsible for freeing array.
-Move *get_legal_moves(Board *board, int *len) {
+static Move *get_legal_moves(Board *board, int *len) {
     bool white = is_white_turn(board);
     BitBoard my_king = white ? board->bb_white_king : board->bb_black_king;
     BitBoard *pseudo_moves = get_pseudo_legal_moves(board, is_white_turn(board), false, 0, false);
@@ -1579,7 +1579,7 @@ Move *get_legal_moves(Board *board, int *len) {
 }
 
 // Starts the Chess API internals, and returns the interface to the bot for access.
-void start_chess_api() {
+static void start_chess_api() {
     API = (InternalAPI *)malloc(sizeof(InternalAPI));
     API->shared_board = NULL;
     API->wtime = 0;
@@ -1598,7 +1598,7 @@ void start_chess_api() {
 }
 
 // Returns true if a threefold repetition has occurred on [board]
-bool is_threefold_draw(Board *board) {
+static bool is_threefold_draw(Board *board) {
     if (API == NULL) start_chess_api();
     // i hate everything
     int cur_size = 0;
@@ -1639,7 +1639,7 @@ bool is_threefold_draw(Board *board) {
 }
 
 // Returns GAME_NORMAL, GAME_STALEMATE or GAME_CHECKMATE based on the state on [board]
-int get_board_end_state(Board *board) {
+static int get_board_end_state(Board *board) {
     if (board->halfmoves >= 50) return GAME_STALEMATE;
     if (is_threefold_draw(board)) return GAME_STALEMATE;
     int num_legal_moves;
