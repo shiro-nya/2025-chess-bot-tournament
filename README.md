@@ -16,6 +16,7 @@ If you have questions, or requests for language support, feel free to reach out 
   - You will likely want a program that can interface with UCI to test your both with. One such program is [Cute Chess](https://cutechess.com), which will be used to host the tournament.
 - When you're happy with your bot, submit it using the [submission form](https://forms.gle/hUD66B5Aec3Z64aJ7)!
   - You will be able to edit your entry until submissions close.
+  - Submissions will close **November 1, 2025 @ 12:00AM EST**
 
 ## Rules
 Please read this section carefully! It outlines what is available to your bot, and how to make a valid submission.
