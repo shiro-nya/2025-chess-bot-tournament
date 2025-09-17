@@ -72,10 +72,6 @@ struct Board {
 InternalAPI *API = NULL;
 unsigned long zobrist_keys[781];
 
-uint64_t rand_long() {
-    return ((uint64_t) rand()) ^ (((uint64_t) rand()) << 16) ^ (((uint64_t) rand()) << 32) ^ (((uint64_t) rand()) << 48);
-}
-
 int highest_bit(BitBoard v) {
     const unsigned long b[] = {0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000, 0xFFFFFFFF00000000};
     const unsigned long S[] = {1, 2, 4, 8, 16, 32};
@@ -90,6 +86,48 @@ int highest_bit(BitBoard v) {
         } 
     }
     return (int)r;
+}
+
+PieceType get_piece_from_index(Board *board, int index) {
+    return get_piece_from_bitboard(board, ((BitBoard) 1) << index);
+}
+
+PieceType get_piece_from_bitboard(Board *board, BitBoard bitboard) {
+    if (bitboard & (board->bb_white_pawn | board->bb_black_pawn)) return PAWN;
+    if (bitboard & (board->bb_white_rook | board->bb_black_rook)) return ROOK;
+    if (bitboard & (board->bb_white_queen | board->bb_black_queen)) return QUEEN;
+    if (bitboard & (board->bb_white_knight | board->bb_black_knight)) return KNIGHT;
+    if (bitboard & (board->bb_white_bishop | board->bb_black_bishop)) return BISHOP;
+    if (bitboard & (board->bb_white_king | board->bb_black_king)) return KING;
+    return 0;  // empty square!
+}
+
+PlayerColor get_color_from_index(Board *board, int index) {
+    return get_color_from_bitboard(board, ((BitBoard) 1) << index);
+}
+
+PieceType get_color_from_bitboard(Board *board, BitBoard bitboard) {
+    BitBoard all_pieces_white = board->bb_white_bishop | board->bb_white_king
+        | board->bb_white_knight | board->bb_white_pawn | board->bb_white_queen
+        | board->bb_white_rook;
+    BitBoard all_pieces_black = board->bb_black_bishop | board->bb_black_king
+        | board->bb_black_knight | board->bb_black_pawn | board->bb_black_queen
+        | board->bb_black_rook;
+    if ((bitboard & all_pieces_white) > 0) return WHITE;
+    if ((bitboard & all_pieces_black) > 0) return BLACK;
+    return -1;  // empty square!
+}
+
+int get_index_from_bitboard(BitBoard bitboard) {
+    return highest_bit(bitboard);
+}
+
+BitBoard get_bitboard_from_index(int index) {
+    return ((BitBoard) 1) << index;
+}
+
+uint64_t rand_long() {
+    return ((uint64_t) rand()) ^ (((uint64_t) rand()) << 16) ^ (((uint64_t) rand()) << 32) ^ (((uint64_t) rand()) << 48);
 }
 
 // Returns true if the boards are equal.
