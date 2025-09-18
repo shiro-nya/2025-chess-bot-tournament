@@ -1065,11 +1065,15 @@ static BitBoard *get_pseudo_legal_moves(Board *board, bool white, bool all_attac
 static bool in_check(Board *board, bool white) {
     BitBoard *moves = get_pseudo_legal_moves(board, !white, true, 0, true);
     BitBoard king_square = white ? board->bb_white_king : board->bb_black_king;
+    bool found = false;
     for (int dir = 0; dir < 16; dir++) {
-        if ((moves[dir] & king_square) > 0) return true;
+        if ((moves[dir] & king_square) > 0) {
+            found = true;
+            break;
+        }
     }
     free(moves);
-    return false;
+    return found;
 }
 
 // Returns the number of pieces on [board] which attack [target]. Checks this for black attackers if [defenderWhite], otherwise checks for white attackers.
