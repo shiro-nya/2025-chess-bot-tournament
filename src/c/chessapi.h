@@ -55,6 +55,15 @@ Caller must free the board with free_board
 */
 Board *chess_get_board();
 
+//! Returns a clone of the given board
+/*!
+The clone is not a deep clone, but uses reference counting to ensure reused shallow objects are not freed early
+Caller must free the board with free_board
+\sa chess_free_board()
+\return A clone of the given board
+*/
+Board *chess_clone_board(Board *board);
+
 //! Returns an array of legal moves
 /*!
 Caller must free array
@@ -179,6 +188,24 @@ For more info on working with BitBoards, see "bitboard.h"
 \return A BitBoard with bits set to 1 for all squares containing the described piece
 */
 BitBoard chess_get_bitboard(Board *board, PlayerColor color, PieceType piece_type);
+
+//! Returns the full move counter for the board.
+/*
+ his number starts at 1, and increments each time black moves.
+\param board the borad to get the full move counter of
+\return The current value of the full move counter
+*/
+int chess_get_full_moves(Board *board);
+
+//! Returns the half move counter for the board.
+/*
+This number starts at 0, and increments each time black or white move.
+It resets to zero each time a pawn is moved or a capture occurs.
+This is mainly used for tracking progress to the 50-move draw rule.
+\param board the borad to get the full move counter of
+\return The current value of the full move counter
+*/
+int chess_get_half_moves(Board *board);
 
 
 ///// MOVE SUBMISSION /////

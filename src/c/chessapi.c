@@ -59,6 +59,7 @@ struct Board {
     BitBoard *bb_white_moves;
     BitBoard *bb_black_moves;
     bool whiteToMove;
+    int refcount;
     Board *last_board;  // for move undo
     BitBoard en_passant_target;
     bool can_castle_bq;
@@ -213,6 +214,8 @@ static void dump_move(char *buffer, Move move) {
 
 // Safely free a board from memory.
 static void free_board(Board *board) {
+    board->refcount--;
+    if (board->refcount > 0) return;
     if (board->bb_white_moves != NULL) {
         free(board->bb_white_moves);
     }
@@ -414,6 +417,7 @@ static Board *create_board() {
     board->last_board = NULL;
     board->en_passant_target = 0;
     board->whiteToMove = true;
+    board->refcount = 1;
     return board;
 }
 
@@ -423,7 +427,10 @@ static Board *clone_board(Board * board) {
     memcpy(new_board, board, sizeof(Board));
     new_board->bb_black_moves = NULL;
     new_board->bb_white_moves = NULL;
-    new_board->last_board = NULL;
+    //new_board->last_board = NULL;
+    if (new_board->last_board != NULL) {
+        new_board->last_board->refcount++;
+    }
     return new_board;
 }
 
@@ -1708,6 +1715,10 @@ Board *chess_get_board() {
     return interface_get_board();
 }
 
+Board *chess_clone_board(Board *board) {
+    return clone_board(board);
+}
+
 Move *chess_get_legal_moves(Board *board, int *len) {
     if (API == NULL) start_chess_api();
     return get_legal_moves(board, len);
@@ -1759,7 +1770,12 @@ void chess_free_moves_array(Move *moves) {
     free(moves);
 }
 
-void chess_push(Move move) {
+int chess_get_half_moves(Board *board) {
+    return board->halfmoves;
+}
+
+void chess_push(Move move)
+{
     if (API == NULL) start_chess_api();
     interface_push(move);
 }
@@ -1779,6 +1795,10 @@ BitBoard chess_get_bitboard(Board *board, PlayerColor color, PieceType piece_typ
         case QUEEN: return ((color == WHITE) ? board->bb_white_queen : board->bb_black_queen);
     }
     return 0;  // bad piece_type
+}
+
+int chess_get_full_moves(Board *board) {
+    return board->fullmoves;
 }
 
 bool chess_is_check(Board *board) {
