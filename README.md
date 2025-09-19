@@ -22,7 +22,7 @@ If you have questions, or requests for language support, feel free to reach out 
 
 ## Rules
 Please read this section carefully! It outlines what is available to your bot, and how to make a valid submission.
-- You may work with a group.
+- You may work alone or with a group.
 - Don't try to store code in variables or function/class/file metadata to be executed via an existing language feature. In particular, don't try to hide code in arbitrary-length strings or ints as pertains to your language. Writing your own VM is okay though, if you really want to go that route.
 - The only libraries available will be the standard libraries for your language plus the chess API supplied in this repo. However, your bot must not make any network connections, read or write files, start or end threads or otherwise run code in the background/in parallel, or use built-in arbitrary execution functions (e.g. Python's `exec()`).
 - Your source code submission must not exceed 1024 tokens. This refers to the tokens the lexer for your language outputs. These will be counted using [toknt](https://github.com/chayleaf/toknt/tree/master).
