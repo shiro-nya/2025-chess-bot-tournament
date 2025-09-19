@@ -120,6 +120,15 @@ class Board(Structure):
 
     def get_color_from_bitboard(self, bitboard: BitBoard) -> PieceType:
         return PieceType(lib.chess_get_color_from_bitboard(byref(self), bitboard).value)
+    
+    def clone(self) -> Board:
+        return lib.chess_clone_board(byref(self)).contents
+    
+    def get_full_moves(self) -> int:
+        return lib.chess_get_full_moves(byref(self)).value
+    
+    def get_half_moves(self) -> int:
+        return lib.chess_get_half_moves(byref(self)).value
 
 
 class API:
@@ -222,3 +231,9 @@ lib.chess_get_bitboard_from_index.argtypes = (c_int,)
 lib.chess_get_bitboard_from_index.restype = _BitBoard
 lib.chess_get_opponent_move.argtypes = ()
 lib.chess_get_opponent_move.restype = Move
+lib.chess_clone_board.argtypes = (POINTER(Board),)
+lib.chess_clone_board.restype = POINTER(Board)
+lib.chess_get_full_moves.argtypes = (POINTER(Board),)
+lib.chess_get_full_moves.restype = c_int
+lib.chess_get_half_moves.argtypes = (POINTER(Board),)
+lib.chess_get_half_moves.restype = c_int
