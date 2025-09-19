@@ -24,7 +24,7 @@ Please read this section carefully! It outlines what is available to your bot, a
 - You may work with a group.
 - Don't try to store code in variables or function/class/file metadata to be executed via an existing language feature. In particular, don't try to hide code in arbitrary-length strings or ints as pertains to your language. Writing your own VM is okay though, if you really want to go that route.
 - The only libraries available will be the standard libraries for your language plus the chess API supplied in this repo. However, your bot must not make any network connections, read or write files, start or end threads or otherwise run code in the background/in parallel, or use built-in arbitrary execution functions (e.g. Python's `exec()`).
-- Your source code submission must not exceed 1024 tokens. This refers to the tokens the lexer for your language outputs. These will be counted using [tcount](https://github.com/RRethy/tcount/tree/master).
+- Your source code submission must not exceed 1024 tokens. This refers to the tokens the lexer for your language outputs. These will be counted using [toknt](https://github.com/chayleaf/toknt/tree/master).
 - Bots shouldn't expect to start from a new chess board state, and should always play from the board provided by the API. Tournament rounds may pre-play an opening move series.
 
 ## FAQ
