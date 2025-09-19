@@ -191,7 +191,7 @@ BitBoard chess_get_bitboard(Board *board, PlayerColor color, PieceType piece_typ
 
 //! Returns the full move counter for the board.
 /*
- his number starts at 1, and increments each time black moves.
+This number starts at 1, and increments each time black moves.
 \param board the borad to get the full move counter of
 \return The current value of the full move counter
 */
