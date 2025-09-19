@@ -6,6 +6,7 @@ Welcome to the tournament! This is a fun contest to try writing a small bot to p
 If you have questions, or requests for language support, feel free to reach out to me on Discord: @shiro_nya
 
 ## Change Log
+- 2025/09/19: Added two functions to the Chess API for fetching board turn counts, and one for cloning boards.
 - 2025/09/18: Added a function to the Chess API for fetching the opponent's latest move.
 - 2025/09/17: Six functions have been added to the Chess API to make Bitboards slightly easier to use.
 
