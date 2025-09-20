@@ -427,6 +427,7 @@ static Board *clone_board(Board * board) {
     memcpy(new_board, board, sizeof(Board));
     new_board->bb_black_moves = NULL;
     new_board->bb_white_moves = NULL;
+    new_board->refcount = 1;
     //new_board->last_board = NULL;
     if (new_board->last_board != NULL) {
         new_board->last_board->refcount++;
@@ -438,8 +439,9 @@ static Board *clone_board(Board * board) {
 // The previous board can be restored with undo_move().
 // Moves are presumed legal.
 static void make_move(Board *board, Move move) {
-    Board *saved_board = clone_board(board);
-    saved_board->last_board = board->last_board;
+    Board *saved_board = clone_board(board); // note: makes a new ref to the board history
+    //saved_board->last_board = board->last_board;  // should be unnecessary
+    if (board->last_board) free_board(board->last_board); // adjust refcount since we're removing a reference
     board->last_board = saved_board;
     int from = highest_bit(move.from);
     int to = highest_bit(move.to);
@@ -655,6 +657,7 @@ static void undo_move(Board *board) {
     set_board_from(board, restore);
     // set the new "previous board" to the previous "previous board"
     board->last_board = restore->last_board;
+    if (board->last_board) board->last_board->refcount++;  // we've added a reference to it! needed or it may be lost on the free call below
     // copy other data not copied by set_board_from
     board->can_castle_bk = restore->can_castle_bk;
     board->can_castle_bq = restore->can_castle_bq;
@@ -677,7 +680,7 @@ static void undo_move(Board *board) {
     // ensure these are NULL before freeing the board to avoid the reused arrays being freed
     restore->bb_white_moves = NULL;
     restore->bb_black_moves = NULL;
-    restore->last_board = NULL;
+    // restore->last_board = NULL;
     // free the restored board
     free_board(restore);
 }
