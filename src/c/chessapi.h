@@ -2,6 +2,8 @@
 // Aside from allowed standard libs, you only may include this and "bitboard.h" for your bot.
 // Please let me know if there are any bugs!
 
+#pragma once
+
 #include <stdbool.h>
 #include "bitboard.h"
 
