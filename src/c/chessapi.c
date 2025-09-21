@@ -72,7 +72,7 @@ struct Board {
 };
 
 static InternalAPI *API = NULL;
-static unsigned long zobrist_keys[781];
+static uint64_t zobrist_keys[781];
 
 static int highest_bit(BitBoard v) {
     const unsigned long b[] = {0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000, 0xFFFFFFFF00000000};
@@ -556,19 +556,6 @@ static void make_move(Board *board, Move move) {
         } else {
             cap_mask = ~move.to;
         }
-        // remove captured piece
-        board->bb_black_bishop &= cap_mask;
-        board->bb_black_rook &= cap_mask;
-        board->bb_black_queen &= cap_mask;
-        board->bb_black_king &= cap_mask;
-        board->bb_black_knight &= cap_mask;
-        board->bb_black_pawn &= cap_mask;
-        board->bb_white_bishop &= cap_mask;
-        board->bb_white_rook &= cap_mask;
-        board->bb_white_queen &= cap_mask;
-        board->bb_white_king &= cap_mask;
-        board->bb_white_knight &= cap_mask;
-        board->bb_white_pawn &= cap_mask;
         // update hash for captured piece
         BitBoard inv_cap_mask = ~cap_mask;
         int cap_at = highest_bit(inv_cap_mask);
@@ -584,20 +571,20 @@ static void make_move(Board *board, Move move) {
         hash ^= ((board->bb_white_queen & inv_cap_mask) > 0) * (zobrist_keys[64*9 + cap_at]);
         hash ^= ((board->bb_white_king & inv_cap_mask) > 0) * (zobrist_keys[64*10 + cap_at]);
         hash ^= ((board->bb_white_knight & inv_cap_mask) > 0) * (zobrist_keys[64*11 + cap_at]);
+        // remove captured piece
+        board->bb_black_bishop &= cap_mask;
+        board->bb_black_rook &= cap_mask;
+        board->bb_black_queen &= cap_mask;
+        board->bb_black_king &= cap_mask;
+        board->bb_black_knight &= cap_mask;
+        board->bb_black_pawn &= cap_mask;
+        board->bb_white_bishop &= cap_mask;
+        board->bb_white_rook &= cap_mask;
+        board->bb_white_queen &= cap_mask;
+        board->bb_white_king &= cap_mask;
+        board->bb_white_knight &= cap_mask;
+        board->bb_white_pawn &= cap_mask;
     }
-    // remove old moved piece
-    board->bb_black_bishop ^= ((board->bb_black_bishop & move.from) > 0) * flip_pieces;
-    board->bb_black_rook ^= ((board->bb_black_rook & move.from) > 0) * flip_pieces;
-    board->bb_black_queen ^= ((board->bb_black_queen & move.from) > 0) * flip_pieces;
-    board->bb_black_king ^= ((board->bb_black_king & move.from) > 0) * flip_pieces;
-    board->bb_black_knight ^= ((board->bb_black_knight & move.from) > 0) * flip_pieces;
-    board->bb_black_pawn ^= ((board->bb_black_pawn & move.from) > 0) * flip_pieces;
-    board->bb_white_bishop ^= ((board->bb_white_bishop & move.from) > 0) * flip_pieces;
-    board->bb_white_rook ^= ((board->bb_white_rook & move.from) > 0) * flip_pieces;
-    board->bb_white_queen ^= ((board->bb_white_queen & move.from) > 0) * flip_pieces;
-    board->bb_white_king ^= ((board->bb_white_king & move.from) > 0) * flip_pieces;
-    board->bb_white_knight ^= ((board->bb_white_knight & move.from) > 0) * flip_pieces;
-    board->bb_white_pawn ^= ((board->bb_white_pawn & move.from) > 0) * flip_pieces;
     // update hash for moved piece
     hash ^= ((board->bb_black_pawn & move.from) > 0) * (zobrist_keys[64*0 + from] ^ zobrist_keys[64*0 + to]);
     hash ^= ((board->bb_black_rook & move.from) > 0) * (zobrist_keys[64*1 + from] ^ zobrist_keys[64*1 + to]);
@@ -611,6 +598,19 @@ static void make_move(Board *board, Move move) {
     hash ^= ((board->bb_white_queen & move.from) > 0) * (zobrist_keys[64*9 + from] ^ zobrist_keys[64*9 + to]);
     hash ^= ((board->bb_white_king & move.from) > 0) * (zobrist_keys[64*10 + from] ^ zobrist_keys[64*10 + to]);
     hash ^= ((board->bb_white_knight & move.from) > 0) * (zobrist_keys[64*11 + from] ^ zobrist_keys[64*11 + to]);
+    // remove old moved piece
+    board->bb_black_bishop ^= ((board->bb_black_bishop & move.from) > 0) * flip_pieces;
+    board->bb_black_rook ^= ((board->bb_black_rook & move.from) > 0) * flip_pieces;
+    board->bb_black_queen ^= ((board->bb_black_queen & move.from) > 0) * flip_pieces;
+    board->bb_black_king ^= ((board->bb_black_king & move.from) > 0) * flip_pieces;
+    board->bb_black_knight ^= ((board->bb_black_knight & move.from) > 0) * flip_pieces;
+    board->bb_black_pawn ^= ((board->bb_black_pawn & move.from) > 0) * flip_pieces;
+    board->bb_white_bishop ^= ((board->bb_white_bishop & move.from) > 0) * flip_pieces;
+    board->bb_white_rook ^= ((board->bb_white_rook & move.from) > 0) * flip_pieces;
+    board->bb_white_queen ^= ((board->bb_white_queen & move.from) > 0) * flip_pieces;
+    board->bb_white_king ^= ((board->bb_white_king & move.from) > 0) * flip_pieces;
+    board->bb_white_knight ^= ((board->bb_white_knight & move.from) > 0) * flip_pieces;
+    board->bb_white_pawn ^= ((board->bb_white_pawn & move.from) > 0) * flip_pieces;
     if (do_promotion) {
         switch (move.promotion) {
             case BISHOP:
@@ -708,6 +708,7 @@ static void *uci_process(void *arg) {
                 fflush(stdout);
             } else if (!strcmp(token, "position")) {
                 pthread_mutex_lock(&API->mutex);
+                memset(&API->latest_opponent_move, 0, sizeof(Move));
                 token = strtok(NULL, " ");
                 if (!strcmp(token, "fen")) {
                     char fenstring[256];
