@@ -90,6 +90,9 @@ class Board(Structure):
     def is_white_turn(self) -> bool:
         return lib.chess_is_white_turn(byref(self))
 
+    def is_black_turn(self) -> bool:
+        return lib.chess_is_black_turn(byref(self))
+
     def skip_turn(self) -> None:
         lib.chess_skip_turn(byref(self))
 
@@ -195,6 +198,8 @@ lib.chess_get_legal_moves.argtypes = (POINTER(Board), POINTER(c_int))
 lib.chess_get_legal_moves.restype = POINTER(Move)
 lib.chess_is_white_turn.argtypes = (POINTER(Board),)
 lib.chess_is_white_turn.restype = c_bool
+lib.chess_is_black_turn.argtypes = (POINTER(Board),)
+lib.chess_is_black_turn.restype = c_bool
 lib.chess_skip_turn.argtypes = (POINTER(Board),)
 lib.chess_skip_turn.restype = None
 lib.chess_in_check.argtypes = (POINTER(Board),)
