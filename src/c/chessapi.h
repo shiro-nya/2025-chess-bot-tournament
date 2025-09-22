@@ -134,8 +134,6 @@ You lose queenside castling rights if you move your king or the queenside rook
 */
 bool chess_can_queenside_castle(Board *board, PlayerColor color);
 
-// Returns one of the "Game end" constants for the given [board]
-
 //! Returns one of the GameState constants for the given board
 /*!
 The GameState constants indicate whether the game is in checkmate, stalemate or neither (if the game is ongoing)
@@ -145,6 +143,13 @@ This is about the same cost as calls to in_check(), in_draw(), etc., so if you p
 \sa chess_in_draw()
 \param board The board to consider
 \return The current GameState
+*/
+GameState chess_get_game_state(Board *board);
+
+//! Returns one of the GameState constants for the given board
+/*!
+DEPRECATED: Use chess_get_game_state instead.
+\sa chess_get_game_state()
 */
 GameState chess_is_game_ended(Board *board);
 

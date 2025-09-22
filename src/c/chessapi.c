@@ -1732,7 +1732,12 @@ bool chess_is_white_turn(Board *board) {
     return is_white_turn(board);
 }
 
+// Alias for deprecated function
 GameState chess_is_game_ended(Board *board) {
+    return chess_get_game_state(board);
+}
+
+GameState chess_get_game_state(Board *board) {
     return get_board_end_state(board);
 }
 
