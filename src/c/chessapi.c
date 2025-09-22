@@ -1732,6 +1732,10 @@ bool chess_is_white_turn(Board *board) {
     return is_white_turn(board);
 }
 
+bool chess_is_black_turn(Board *board) {
+    return !is_white_turn(board);
+}
+
 // Alias for deprecated function
 GameState chess_is_game_ended(Board *board) {
     return chess_get_game_state(board);

@@ -77,10 +77,19 @@ Move *chess_get_legal_moves(Board *board, int *len);
 
 //! Returns whether it is white's turn or not
 /*!
+\sa chess_is_black_turn()
 \param board The board to consider
 \return True if it is white to move
 */
 bool chess_is_white_turn(Board *board);
+
+//! Returns whether it is black's turn or not
+/*!
+\sa chess_is_white_turn()
+\param board The board to consider
+\return True if it is black to move
+*/
+bool chess_is_black_turn(Board *board);
 
 //! Skips your turn on the given board.
 /*!
