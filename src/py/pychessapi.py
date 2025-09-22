@@ -181,7 +181,7 @@ class API:
     
     @classmethod
     def get_bitboard_from_index(cls, index: int) -> BitBoard:
-        return lib.chess_get_bitboard_from_index(index).value
+        return BitBoard(lib.chess_get_bitboard_from_index(index))
     
     @classmethod
     def get_opponent_move(cls) -> Move:
