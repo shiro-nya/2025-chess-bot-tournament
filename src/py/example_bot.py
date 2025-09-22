@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Example Python bot using the Chess API
 
 from pychessapi import API
