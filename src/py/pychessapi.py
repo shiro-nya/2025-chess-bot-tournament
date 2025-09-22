@@ -18,41 +18,55 @@ _C_enum = c_int
 
 
 class PlayerColor(Enum):
-    WHITE = 0,
+    WHITE = 0
     BLACK = 1
 
 
 class PieceType(Enum):
-    PAWN = 1,
-    BISHOP = 2,
-    KNIGHT = 3,
-    ROOK = 4,
-    QUEEN = 5,
+    PAWN = 1
+    BISHOP = 2
+    KNIGHT = 3
+    ROOK = 4
+    QUEEN = 5
     KING = 6
 
 
 class GameState(Enum):
-    GAME_CHECKMATE = -1,
-    GAME_NORMAL = 0,
+    GAME_CHECKMATE = -1
+    GAME_NORMAL = 0
     GAME_STALEMATE = 1
     
 
 class Move(Structure):
 
-    _fields_ = [("from", _BitBoard),
-                ("to", _BitBoard),
-                ("promotion", c_uint8),
-                ("capture", c_bool),
-                ("castle", c_bool)]
-
-    origin: BitBoard
-    target: BitBoard
-    promotion: PieceType
-    castle: bool
-    capture: bool
+    _fields_ = [("_from", _BitBoard),
+                ("_to", _BitBoard),
+                ("_promotion", c_uint8),
+                ("_capture", c_bool),
+                ("_castle", c_bool)]
 
     def __init__(self):
         pass
+
+    @property
+    def origin(self) -> BitBoard:
+        return BitBoard(self._from)
+
+    @property
+    def target(self) -> BitBoard:
+        return BitBoard(self._to)
+
+    @property
+    def promotion(self) -> PieceType:
+        return PieceType(self._promotion)
+
+    @property
+    def castle(self) -> bool:
+        return self._castle
+
+    @property
+    def capture(self) -> bool:
+        return self._capture
 
 
 class Board(Structure):
@@ -74,31 +88,31 @@ class Board(Structure):
         return moves
 
     def is_white_turn(self) -> bool:
-        return lib.chess_is_white_turn(byref(self)).value
+        return lib.chess_is_white_turn(byref(self))
 
     def skip_turn(self) -> None:
         lib.chess_skip_turn(byref(self))
 
     def in_check(self) -> bool:
-        return lib.chess_in_check(byref(self)).value
+        return lib.chess_in_check(byref(self))
 
     def in_checkmate(self) -> bool:
-        return lib.chess_in_checkmate(byref(self)).value
+        return lib.chess_in_checkmate(byref(self))
 
     def in_draw(self) -> bool:
-        return lib.chess_in_draw(byref(self)).value
+        return lib.chess_in_draw(byref(self))
 
     def can_castle_kingside(self, color: PlayerColor) -> bool:
-        return lib.chess_can_castle_kingside(byref(self), color).value
+        return lib.chess_can_kingside_castle(byref(self), c_int(color.value))
 
     def can_castle_queenside(self, color: PlayerColor) -> bool:
-        return lib.chess_can_castle_queenside(byref(self), color).value
+        return lib.chess_can_queenside_castle(byref(self), c_int(color.value))
 
     def is_game_ended(self) -> GameState:
-        return GameState(lib.chess_is_game_ended(byref(self)).value)
+        return GameState(lib.chess_is_game_ended(byref(self)))
 
     def zobrist_key(self) -> int:
-        return lib.chess_zobrist_key(byref(self)).value
+        return lib.chess_zobrist_key(byref(self))
 
     def make_move(self, move: Move) -> None:
         lib.chess_make_move(byref(self), move)
@@ -107,28 +121,28 @@ class Board(Structure):
         lib.chess_undo_move(byref(self))
 
     def get_bitboard(self, color: PlayerColor, piece_type: PieceType) -> BitBoard:
-        return lib.chess_get_bitboard(byref(self), color, piece_type).value
+        return BitBoard(lib.chess_get_bitboard(byref(self), c_int(color.value), c_int(piece_type.value)))
     
     def get_piece_from_index(self, index: int) -> PieceType:
-        return PieceType(lib.chess_get_piece_from_index(byref(self), index).value)
+        return PieceType(lib.chess_get_piece_from_index(byref(self), index))
 
     def get_piece_from_bitboard(self, bitboard: BitBoard) -> PieceType:
-        return PieceType(lib.chess_get_piece_from_bitboard(byref(self), bitboard).value)
+        return PieceType(lib.chess_get_piece_from_bitboard(byref(self), _BitBoard(bitboard)))
 
     def get_color_from_index(self, index: int) -> PlayerColor:
-        return PlayerColor(lib.chess_get_color_from_index(byref(self), index).value)
+        return PlayerColor(lib.chess_get_color_from_index(byref(self), index))
 
     def get_color_from_bitboard(self, bitboard: BitBoard) -> PieceType:
-        return PieceType(lib.chess_get_color_from_bitboard(byref(self), bitboard).value)
+        return PieceType(lib.chess_get_color_from_bitboard(byref(self), _BitBoard(bitboard)))
     
     def clone(self) -> Board:
         return lib.chess_clone_board(byref(self)).contents
     
     def get_full_moves(self) -> int:
-        return lib.chess_get_full_moves(byref(self)).value
+        return lib.chess_get_full_moves(byref(self))
     
     def get_half_moves(self) -> int:
-        return lib.chess_get_half_moves(byref(self)).value
+        return lib.chess_get_half_moves(byref(self))
 
 
 class API:
@@ -151,19 +165,19 @@ class API:
 
     @classmethod
     def get_time_millis(cls) -> int:
-        return lib.chess_get_time_millis().value
+        return lib.chess_get_time_millis()
 
     @classmethod
     def get_opponent_time_millis(cls) -> int:
-        return lib.chess_get_opponent_time_millis().value
+        return lib.chess_get_opponent_time_millis()
 
     @classmethod
     def get_elapsed_time_millis(cls) -> int:
-        return lib.chess_get_elapsed_time_millis().value
+        return lib.chess_get_elapsed_time_millis()
     
     @classmethod
     def get_index_from_bitboard(cls, bitboard: BitBoard) -> int:
-        return lib.chess_get_index_from_bitboard(bitboard).value
+        return lib.chess_get_index_from_bitboard(_BitBoard(bitboard))
     
     @classmethod
     def get_bitboard_from_index(cls, index: int) -> BitBoard:
