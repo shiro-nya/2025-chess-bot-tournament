@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from ctypes import cdll, CDLL, c_uint8, c_uint64, c_int, c_bool, Structure, c_long, cast, pointer, byref, POINTER, ARRAY
 from enum import Enum
-from typing import Any, Union
+from typing import Optional
 import os
 
 
@@ -45,8 +45,14 @@ class Move(Structure):
                 ("_capture", c_bool),
                 ("_castle", c_bool)]
 
-    def __init__(self):
-        pass
+    def __init__(self, copy_from: Optional[Move]):
+        if copy_from is not None:
+            # awkward copy ctor
+            self._from = _BitBoard(BitBoard(copy_from._from))
+            self._to = _BitBoard(BitBoard(copy_from._to))
+            self._promotion = c_uint8(int(copy_from._promotion))
+            self._capture = c_bool(bool(copy_from._capture))
+            self._castle = c_bool(bool(copy_from._castle))
 
     @property
     def origin(self) -> BitBoard:
@@ -62,11 +68,11 @@ class Move(Structure):
 
     @property
     def castle(self) -> bool:
-        return self._castle
+        return bool(self._castle)
 
     @property
     def capture(self) -> bool:
-        return self._capture
+        return bool(self._capture)
 
 
 class Board(Structure):
@@ -83,7 +89,7 @@ class Board(Structure):
         moves_len_C = c_int(0)
         moves_C = cast(lib.chess_get_legal_moves(byref(self), byref(moves_len_C)), POINTER(Move))
         moves_len = moves_len_C.value
-        moves = [moves_C[i] for i in range(moves_len)]
+        moves = [Move(moves_C[i]) for i in range(moves_len)]
         lib.chess_free_moves_array(moves_C)
         return moves
 
