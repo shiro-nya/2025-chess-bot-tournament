@@ -108,8 +108,8 @@ class Board(Structure):
     def can_castle_queenside(self, color: PlayerColor) -> bool:
         return lib.chess_can_queenside_castle(byref(self), c_int(color.value))
 
-    def is_game_ended(self) -> GameState:
-        return GameState(lib.chess_is_game_ended(byref(self)))
+    def get_game_state(self) -> GameState:
+        return GameState(lib.chess_get_game_state(byref(self)))
 
     def zobrist_key(self) -> int:
         return lib.chess_zobrist_key(byref(self))
@@ -207,8 +207,8 @@ lib.chess_can_kingside_castle.argtypes = (POINTER(Board), _C_enum)
 lib.chess_can_kingside_castle.restype = c_bool
 lib.chess_can_queenside_castle.argtypes = (POINTER(Board), _C_enum)
 lib.chess_can_queenside_castle.restype = c_bool
-lib.chess_is_game_ended.argtypes = (POINTER(Board),)
-lib.chess_is_game_ended.restype = c_bool
+lib.chess_get_game_state.argtypes = (POINTER(Board),)
+lib.chess_get_game_state.restype = c_bool
 lib.chess_zobrist_key.argtypes = (POINTER(Board),)
 lib.chess_zobrist_key.restype = c_uint64
 lib.chess_make_move.argtypes = (POINTER(Board), Move)
