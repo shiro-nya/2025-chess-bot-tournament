@@ -75,8 +75,8 @@ static InternalAPI *API = NULL;
 static uint64_t zobrist_keys[781];
 
 static int highest_bit(BitBoard v) {
-    const unsigned long b[] = {0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000, 0xFFFFFFFF00000000};
-    const unsigned long S[] = {1, 2, 4, 8, 16, 32};
+    const unsigned long long b[] = {0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000, 0xFFFFFFFF00000000};
+    const unsigned long long S[] = {1, 2, 4, 8, 16, 32};
     int i;
 
     register unsigned long r = 0; // result of log2(v) will go here
