@@ -1,11 +1,12 @@
 # 2025-chess-bot-tournament
 ![Tournament banner](/resources/chess_tournament_banner.png)
 
-Welcome to the tournament! This is a fun contest to try writing a small bot to play chess! Once submitted, all of the bots will face off in a tournament to decide the strongest!
+Welcome to the tournament! This is a fun contest to try writing a chess engine in 1024 tokens! Once submitted, all of the bots will face off in a tournament to decide the strongest!
 
 If you have questions, or requests for language support, feel free to reach out to me on Discord: @shiro_nya
 
 ## Change Log
+- 2025/09/22: Added is_black_turn, deprecated is_game_ended in favor of renamed get_game_state (but the former still works for backward compatibility).
 - 2025/09/19: Added two functions to the Chess API for fetching board turn counts, and one for cloning boards.
 - 2025/09/18: Added a function to the Chess API for fetching the opponent's latest move.
 - 2025/09/17: Six functions have been added to the Chess API to make Bitboards slightly easier to use.
