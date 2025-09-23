@@ -3,6 +3,8 @@
 
 Welcome to the tournament! This is a fun contest to try writing a chess engine in 1024 tokens! Once submitted, all of the bots will face off in a tournament to decide the strongest!
 
+Read on to learn [how to participate](https://github.com/shiro-nya/2025-chess-bot-tournament/blob/main/README.md#how-to-participate), the [rules your submission must follow](https://github.com/shiro-nya/2025-chess-bot-tournament/blob/main/README.md#rules) and see some [frequently asked questions](https://github.com/shiro-nya/2025-chess-bot-tournament/blob/main/README.md#faq).
+
 If you have questions, or requests for language support, feel free to reach out to me on Discord: @shiro_nya
 
 ## Change Log
