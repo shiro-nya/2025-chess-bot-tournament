@@ -31,34 +31,29 @@
 typedef struct {
     int locks;
     mtx_t locks_mutex;
-    mtx_t wait_mutex;
+    cnd_t wait_cnd;
 } Semaphore;
 
 void semaphore_init(Semaphore *sem, int locks) {
     sem->locks = locks;
     mtx_init(&sem->locks_mutex, mtx_plain);
-    mtx_init(&sem->wait_mutex, mtx_plain);
-    if (locks == 0) {
-        mtx_lock(&sem->wait_mutex);
-    }
+    cnd_init(&sem->wait_cnd);
 }
 
 void semaphore_post(Semaphore *sem) {
     mtx_lock(&sem->locks_mutex);
     sem->locks++;
-    if (sem->locks == 1) {  // if we added capacity, let others into the mutex
-        mtx_unlock(&sem->wait_mutex);
-    }
+    cnd_signal(&sem->wait_cnd);
     mtx_unlock(&sem->locks_mutex);
 }
 
 void semaphore_wait(Semaphore *sem) {
-    mtx_lock(&sem->wait_mutex);
     mtx_lock(&sem->locks_mutex);
-    sem->locks--;
-    if (sem->locks > 0) {  // let others in if we still have capacity
-        mtx_unlock(&sem->wait_mutex);
+    int locks = sem->locks;
+    if (locks == 0) {
+        cnd_wait(&sem->wait_cnd, &sem->locks_mutex);
     }
+    sem->locks--;
     mtx_unlock(&sem->locks_mutex);
 }
 
