@@ -1221,7 +1221,7 @@ static BitBoard single_check_block_tiles(Board *board, bool defenderWhite) {
 static Move *add_to_moves(Move *moves, size_t *len_moves, size_t *maxlen_moves, Move move) {
     moves[*len_moves] = move;
     (*len_moves)++;
-    printf("new length of moves is %llu\n", *len_moves);
+    //printf("new length of moves is %llu\n", *len_moves);
     if (*len_moves == *maxlen_moves) {
         (*maxlen_moves) *= 2;
         return realloc(moves, *maxlen_moves * sizeof(Move));
@@ -1301,7 +1301,7 @@ static Move *get_legal_moves(Board *board, int *len) {
         }
         if (pseudo_moves[DIR_N] & piecepos) {
             add_move.from = bb_blocker_s(piecepos, ~my_pieces);
-            char movestr[8];
+            //char movestr[8];
             //dump_move(movestr, add_move);
             //printf("testing move: %s\n", movestr);
             bool moving_king = (add_move.from & my_king) > 0;
