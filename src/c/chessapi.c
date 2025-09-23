@@ -1,11 +1,21 @@
 #include "chessapi.h"
 #include <stdlib.h>
 #include <string.h>
-#include <threads.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
+
+/// TESTING ONLY ///
+#undef __STDC_NO_THREADS__
+#define __STDC_NO_THREADS__ 1
+/// TESTING ONLY ///
+
+#if __STDC_NO_THREADS__
+    #include <pthread.h>  // backup if threads.h not present; required for mac
+#else
+    #include <threads.h>  // preferred
+#endif
 
 #define CHESS_BOT_NAME "My Chess Bot"
 #define BOT_AUTHOR_NAME "Author Name Here"
@@ -28,26 +38,70 @@
 #define DIR_SSE 14
 #define DIR_SEE 15
 
+#if __STDC_NO_THREADS__
+
+typedef struct {
+    volatile int locks;
+    pthread_mutex_t locks_mutex;
+    pthread_cond_t wait_cnd;
+} Semaphore;
+
+static void semaphore_init(Semaphore *sem, int locks) {
+    sem->locks = locks;
+    pthread_mutex_init(&sem->locks_mutex, NULL);
+    pthread_cond_init(&sem->wait_cnd, NULL);
+}
+
+static void semaphore_post(Semaphore *sem) {
+    pthread_mutex_lock(&sem->locks_mutex);
+    sem->locks++;
+    pthread_mutex_unlock(&sem->locks_mutex);
+    pthread_cond_signal(&sem->wait_cnd);
+}
+
+static void semaphore_wait(Semaphore *sem) {
+    pthread_mutex_lock(&sem->locks_mutex);
+    while (sem->locks == 0) {
+        pthread_cond_wait(&sem->wait_cnd, &sem->locks_mutex);
+    }
+    sem->locks--;
+    pthread_mutex_unlock(&sem->locks_mutex);
+}
+
+static void chessapi_mutex_lock(pthread_mutex_t *mtx) {
+    pthread_mutex_lock(mtx);
+}
+
+static void chessapi_mutex_unlock(pthread_mutex_t *mtx) {
+    pthread_mutex_lock(mtx);
+}
+
+static void chessapi_mutex_init(pthread_mutex_t *mtx) {
+    pthread_mutex_init(mtx, NULL);
+}
+
+#else
+
 typedef struct {
     volatile int locks;
     mtx_t locks_mutex;
     cnd_t wait_cnd;
 } Semaphore;
 
-void semaphore_init(Semaphore *sem, int locks) {
+static void semaphore_init(Semaphore *sem, int locks) {
     sem->locks = locks;
     mtx_init(&sem->locks_mutex, mtx_plain);
     cnd_init(&sem->wait_cnd);
 }
 
-void semaphore_post(Semaphore *sem) {
+static void semaphore_post(Semaphore *sem) {
     mtx_lock(&sem->locks_mutex);
     sem->locks++;
     mtx_unlock(&sem->locks_mutex);
     cnd_signal(&sem->wait_cnd);
 }
 
-void semaphore_wait(Semaphore *sem) {
+static void semaphore_wait(Semaphore *sem) {
     mtx_lock(&sem->locks_mutex);
     while (sem->locks == 0) {
         cnd_wait(&sem->wait_cnd, &sem->locks_mutex);
@@ -56,18 +110,37 @@ void semaphore_wait(Semaphore *sem) {
     mtx_unlock(&sem->locks_mutex);
 }
 
+static void chessapi_mutex_lock(mtx_t *mtx) {
+    mtx_lock(mtx);
+}
+
+static void chessapi_mutex_unlock(mtx_t *mtx) {
+    mtx_unlock(mtx);
+}
+
+static void chessapi_mutex_init(mtx_t *mtx) {
+    mtx_init(mtx, mtx_plain);
+}
+
+#endif
+
 typedef struct {
-    // pthread_t uci_thread;
+    #if __STDC_NO_THREADS__
+    pthread_t uci_thread;
+    #else
     thrd_t uci_thread;
+    #endif
     Board *shared_board;
     uint64_t wtime;
     uint64_t btime;
     clock_t turn_started_time;
     Move latest_pushed_move;
     Move latest_opponent_move;
-    // pthread_mutex_t mutex;
+    #if __STDC_NO_THREADS__
+    pthread_mutex_t mutex;
+    #else
     mtx_t mutex;
-    // sem_t intermission_mutex;
+    #endif
     Semaphore intermission_mutex;
 } InternalAPI;
 
@@ -716,7 +789,7 @@ static void undo_move(Board *board) {
 }
 
 // Listens for and responds to UCI messages from the GUI. Updates API state as needed.
-static int uci_process(void *arg) {
+static int uci_process() {
     char line[4096];
     bool running = true;
     while (running) {
@@ -738,7 +811,7 @@ static int uci_process(void *arg) {
                 fflush(stdout);
             } else if (!strcmp(token, "position")) {
                 //pthread_mutex_lock(&API->mutex);
-                mtx_lock(&API->mutex);
+                chessapi_mutex_lock(&API->mutex);
                 memset(&API->latest_opponent_move, 0, sizeof(Move));
                 token = strtok(NULL, " ");
                 if (!strcmp(token, "fen")) {
@@ -782,10 +855,10 @@ static int uci_process(void *arg) {
                     API->latest_opponent_move = m;
                 }
                 //pthread_mutex_unlock(&API->mutex);
-                mtx_unlock(&API->mutex);
+                chessapi_mutex_unlock(&API->mutex);
             } else if (!strcmp(token, "go")) {
                 //pthread_mutex_lock(&API->mutex);
-                mtx_lock(&API->mutex);
+                chessapi_mutex_lock(&API->mutex);
                 token = strtok(NULL, " ");
                 while (token != NULL) {
                     if (!strcmp(token, "wtime")) {
@@ -803,7 +876,7 @@ static int uci_process(void *arg) {
                 semaphore_post(&API->intermission_mutex);
                 API->turn_started_time = clock();
                 //pthread_mutex_unlock(&API->mutex);
-                mtx_unlock(&API->mutex);
+                chessapi_mutex_unlock(&API->mutex);
             } else if (!strcmp(token, "stop")) {
                 // does nothing for now
             } else if (!strcmp(token, "quit")) {
@@ -818,11 +891,28 @@ static int uci_process(void *arg) {
     return 0;
 }
 
-// Start the UCI listener.
-static void uci_start(thrd_t *thread_id) {
-    //pthread_create(thread_id, NULL, &uci_process, NULL);
-    thrd_create(thread_id, &uci_process, NULL);
+// Compatibility layer to ensure types line up
+#if __STDC_NO_THREADS__
+static void *uci_thread_wrapper(void *arg) {
+    uci_process();
+    return 0;
 }
+#else
+static int uci_thread_wrapper(void *arg) {
+    return uci_process();
+}
+#endif
+
+// Start the UCI listener.
+#if __STDC_NO_THREADS__
+static void uci_start(pthread_t *thread_id) {
+    pthread_create(thread_id, NULL, &uci_thread_wrapper, NULL);
+}
+#else
+static void uci_start(thrd_t *thread_id) {
+    thrd_create(thread_id, &uci_thread_wrapper, NULL);
+}
+#endif
 
 // gets API->latest_pushed_move and formats in standard game notation, storing result in buffer
 // buffer should be at least 7 bytes
@@ -848,64 +938,64 @@ static void uci_finished_searching() {
 
 static void interface_push(Move move) {
     // pthread_mutex_lock(&API->mutex);
-    mtx_lock(&API->mutex);
+    chessapi_mutex_lock(&API->mutex);
     API->latest_pushed_move = move;
     uci_info();
     // pthread_mutex_unlock(&API->mutex);
-    mtx_unlock(&API->mutex);
+    chessapi_mutex_unlock(&API->mutex);
 }
 
 static void interface_done() {
     //pthread_mutex_lock(&API->mutex);
-    mtx_lock(&API->mutex);
+    chessapi_mutex_lock(&API->mutex);
     uci_finished_searching();
     //pthread_mutex_unlock(&API->mutex);
-    mtx_unlock(&API->mutex);
+    chessapi_mutex_unlock(&API->mutex);
     semaphore_wait(&API->intermission_mutex);
 }
 
 static Board *interface_get_board() {
     //pthread_mutex_lock(&API->mutex);
-    mtx_lock(&API->mutex);
+    chessapi_mutex_lock(&API->mutex);
     Board *board = clone_board(API->shared_board);
     //pthread_mutex_unlock(&API->mutex);
-    mtx_unlock(&API->mutex);
+    chessapi_mutex_unlock(&API->mutex);
     return board;
 }
 
 static uint64_t interface_get_time_millis() {
     //pthread_mutex_lock(&API->mutex);
-    mtx_lock(&API->mutex);
+    chessapi_mutex_lock(&API->mutex);
     uint64_t millis = API->shared_board->whiteToMove ? API->wtime : API->btime;
     //pthread_mutex_unlock(&API->mutex);
-    mtx_unlock(&API->mutex);
+    chessapi_mutex_unlock(&API->mutex);
     return millis;
 }
 
 static uint64_t interface_get_opponent_time_millis() {
     //pthread_mutex_lock(&API->mutex);
-    mtx_lock(&API->mutex);
+    chessapi_mutex_lock(&API->mutex);
     uint64_t millis = API->shared_board->whiteToMove ? API->btime : API->wtime;
     //pthread_mutex_unlock(&API->mutex);
-    mtx_unlock(&API->mutex);
+    chessapi_mutex_unlock(&API->mutex);
     return millis;
 }
 
 static uint64_t interface_get_elapsed_time_millis() {
     //pthread_mutex_lock(&API->mutex);
-    mtx_lock(&API->mutex);
+    chessapi_mutex_lock(&API->mutex);
     uint64_t millis = (clock() - API->turn_started_time) / (CLOCKS_PER_SEC / 1000);
     //pthread_mutex_unlock(&API->mutex);
-    mtx_unlock(&API->mutex);
+    chessapi_mutex_unlock(&API->mutex);
     return millis;
 }
 
 static Move interface_get_opponent_move() {
     //pthread_mutex_lock(&API->mutex);
-    mtx_lock(&API->mutex);
+    chessapi_mutex_lock(&API->mutex);
     Move move = API->latest_opponent_move;
     //pthread_mutex_unlock(&API->mutex);
-    mtx_unlock(&API->mutex);
+    chessapi_mutex_unlock(&API->mutex);
     return move;
 }
 
@@ -1708,9 +1798,12 @@ static void start_chess_api() {
     API->wtime = 0;
     API->btime = 0;
     memset(&API->latest_opponent_move, 0, sizeof(Move));
-    //pthread_mutex_init(&API->mutex, NULL);
-    //sem_init(&API->intermission_mutex, 0, 0);
+    chessapi_mutex_init(&API->mutex);
+    /*#if __STDC_NO_THREADS__
+    pthread_mutex_init(&API->mutex, NULL);
+    #else
     mtx_init(&API->mutex, mtx_plain);
+    #endif*/
     semaphore_init(&API->intermission_mutex, 0);
     // setup zobrist keys
     srand(time(NULL));
