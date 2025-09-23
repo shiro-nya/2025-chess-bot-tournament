@@ -20,6 +20,7 @@ Over the course of the contest, changes may be required to the API or rules that
 - 2025/09/17: Six functions have been added to the Chess API to make Bitboards slightly easier to use.
 
 ## How to participate
+**For Windows developers:** There seem to be some problems currently with using the Chess API on Windows. While a fix is found, I suggest testing your builds on WSL2.
 - Install a development environment for one of the supported languages: Python, C, C++ (the C API should be compatible), Rust, Haskell
 - Get the resources for your language from its folder under `src`. Don't forget to check the language-specific README and the [docs](https://github.com/shiro-nya/2025-chess-bot-tournament/wiki)!
 - Write some code!
