@@ -29,7 +29,7 @@
 #define DIR_SEE 15
 
 typedef struct {
-    int locks;
+    volatile int locks;
     mtx_t locks_mutex;
     cnd_t wait_cnd;
 } Semaphore;
@@ -43,14 +43,13 @@ void semaphore_init(Semaphore *sem, int locks) {
 void semaphore_post(Semaphore *sem) {
     mtx_lock(&sem->locks_mutex);
     sem->locks++;
-    cnd_signal(&sem->wait_cnd);
     mtx_unlock(&sem->locks_mutex);
+    cnd_signal(&sem->wait_cnd);
 }
 
 void semaphore_wait(Semaphore *sem) {
     mtx_lock(&sem->locks_mutex);
-    int locks = sem->locks;
-    if (locks == 0) {
+    while (sem->locks == 0) {
         cnd_wait(&sem->wait_cnd, &sem->locks_mutex);
     }
     sem->locks--;
@@ -116,7 +115,7 @@ static int highest_bit(BitBoard v) {
         {
             v >>= S[i];
             r |= S[i];
-        } 
+        }
     }
     return (int)r;
 }
@@ -190,8 +189,8 @@ static bool board_equals(Board *board1, Board *board2) {
 // if [board] is given, will augment move with flags; NULL is okay too
 static Move load_move(char *movestr, Board *board) {
     Move m;
-    m.from = 1ul << ((movestr[0] - 'a') + 8*(movestr[1] - '1'));
-    m.to = 1ul << ((movestr[2] - 'a') + 8*(movestr[3] - '1'));
+    m.from = 1ull << ((movestr[0] - 'a') + 8*(movestr[1] - '1'));
+    m.to = 1ull << ((movestr[2] - 'a') + 8*(movestr[3] - '1'));
     switch(movestr[4]) {
         case 'p': m.promotion = PAWN; break;
         case 'b': m.promotion = BISHOP; break;
@@ -495,7 +494,7 @@ static void make_move(Board *board, Move move) {
         } else if (!en_passant) {
             board->en_passant_target = 0;
         }
-        if (move.to & 0xff000000000000fful) {
+        if (move.to & 0xff000000000000ffull) {
             do_promotion = true;
         }
     } else {
@@ -512,16 +511,16 @@ static void make_move(Board *board, Move move) {
         board->can_castle_bk = false;
         board->can_castle_bq = false;
     // note: flip_pieces used below because someone taking our rooks also clears castle rights
-    } else if (flip_pieces & 0x0000000000000001ul) {
+    } else if (flip_pieces & 0x0000000000000001ull) {
         if (board->can_castle_wq) hash ^= zobrist_keys[771];
         board->can_castle_wq = false;
-    } else if (flip_pieces & 0x0000000000000080ul) {
+    } else if (flip_pieces & 0x0000000000000080ull) {
         if (board->can_castle_wk) hash ^= zobrist_keys[770];
         board->can_castle_wk = false;
-    } else if (flip_pieces & 0x0100000000000000ul) {
+    } else if (flip_pieces & 0x0100000000000000ull) {
         if (board->can_castle_bq) hash ^= zobrist_keys[769];
         board->can_castle_bq = false;
-    } else if (flip_pieces & 0x8000000000000000ul) {
+    } else if (flip_pieces & 0x8000000000000000ull) {
         if (board->can_castle_bk) hash ^= zobrist_keys[768];
         board->can_castle_bk = false;
     }
@@ -531,8 +530,8 @@ static void make_move(Board *board, Move move) {
             hash ^= zobrist_keys[64*10+4]^zobrist_keys[64*10+6]^zobrist_keys[64*7+7]^zobrist_keys[64*7+5];
             if (board->can_castle_wk) hash ^= zobrist_keys[770];
             if (board->can_castle_wq) hash ^= zobrist_keys[771];
-            board->bb_white_king ^= 80ul;
-            board->bb_white_rook ^= 160ul;
+            board->bb_white_king ^= 80ull;
+            board->bb_white_rook ^= 160ull;
             board->can_castle_wk = false;
             board->can_castle_wq = false;
         } else if ((move.from & board->bb_white_king) > 0 && (move.to < move.from)) {
@@ -540,8 +539,8 @@ static void make_move(Board *board, Move move) {
             hash ^= zobrist_keys[64*10+4]^zobrist_keys[64*10+2]^zobrist_keys[64*7+0]^zobrist_keys[64*7+3];
             if (board->can_castle_wk) hash ^= zobrist_keys[770];
             if (board->can_castle_wq) hash ^= zobrist_keys[771];
-            board->bb_white_king ^= 20ul;
-            board->bb_white_rook ^= 9ul;
+            board->bb_white_king ^= 20ull;
+            board->bb_white_rook ^= 9ull;
             board->can_castle_wk = false;
             board->can_castle_wq = false;
         } else if ((move.from & board->bb_black_king) > 0 && (move.to > move.from)) {
@@ -549,8 +548,8 @@ static void make_move(Board *board, Move move) {
             hash ^= zobrist_keys[64*10+56+4]^zobrist_keys[64*10+56+6]^zobrist_keys[64*7+56+7]^zobrist_keys[64*7+56+5];
             if (board->can_castle_bk) hash ^= zobrist_keys[768];
             if (board->can_castle_bq) hash ^= zobrist_keys[769];
-            board->bb_black_king ^= 5764607523034234880ul;
-            board->bb_black_rook ^= 11529215046068469760ul;
+            board->bb_black_king ^= 5764607523034234880ull;
+            board->bb_black_rook ^= 11529215046068469760ull;
             board->can_castle_bk = false;
             board->can_castle_bq = false;
         } else if ((move.from & board->bb_black_king) > 0 && (move.to < move.from)) {
@@ -558,8 +557,8 @@ static void make_move(Board *board, Move move) {
             hash ^= zobrist_keys[64*10+56+4]^zobrist_keys[64*10+56+2]^zobrist_keys[64*7+56+0]^zobrist_keys[64*7+56+3];
             if (board->can_castle_bk) hash ^= zobrist_keys[768];
             if (board->can_castle_bq) hash ^= zobrist_keys[769];
-            board->bb_black_king ^= 1441151880758558720ul;
-            board->bb_black_rook ^= 648518346341351424ul;
+            board->bb_black_king ^= 1441151880758558720ull;
+            board->bb_black_rook ^= 648518346341351424ull;
             board->can_castle_bk = false;
             board->can_castle_bq = false;
         }
@@ -771,6 +770,13 @@ static int uci_process(void *arg) {
                     while (move != NULL) {
                         m = load_move(move, API->shared_board);
                         make_move(API->shared_board, m);
+                        /*printf("board after update:\n");
+                        char bitboard_dump[80];
+                        printf("DEBUG: pawns follow\n");
+                        dump_bitboard(API->shared_board->bb_white_pawn, bitboard_dump);
+                        printf("white: \n%s\n", bitboard_dump);
+                        dump_bitboard(API->shared_board->bb_black_pawn, bitboard_dump);
+                        printf("black: \n%s\n", bitboard_dump);*/
                         move = strtok(NULL, " ");
                     }
                     API->latest_opponent_move = m;
@@ -1018,7 +1024,7 @@ static BitBoard get_pins_nwse(Board *board, bool white) {
 // Caller must free move array.
 static BitBoard *get_pseudo_legal_moves(Board *board, bool white, bool all_attacked, BitBoard exclude, bool exclude_pawn_moves) {
     BitBoard *dirmoves = malloc(16*sizeof(BitBoard));
-    if ((!all_attacked) && (exclude == 0)) {
+    if ((!all_attacked) && (exclude == 0) && (!exclude_pawn_moves)) {
         if (white && board->bb_white_moves) {
             memcpy(dirmoves, board->bb_white_moves, 16*sizeof(BitBoard));
             return dirmoves;
@@ -1027,7 +1033,7 @@ static BitBoard *get_pseudo_legal_moves(Board *board, bool white, bool all_attac
             return dirmoves;
         }
     }
-    memset(dirmoves, 0, 16);
+    memset(dirmoves, 0, 16*sizeof(BitBoard));
     BitBoard all_pieces_white = board->bb_white_bishop | board->bb_white_king
         | board->bb_white_knight | board->bb_white_pawn | board->bb_white_queen
         | board->bb_white_rook;
@@ -1036,11 +1042,11 @@ static BitBoard *get_pseudo_legal_moves(Board *board, bool white, bool all_attac
         | board->bb_black_rook;
     BitBoard all_pieces = all_pieces_black | all_pieces_white;
     BitBoard empty = exclude | ~all_pieces;
-    BitBoard all_attacked_mask = all_attacked ? ~0ul : 0ul;
-    BitBoard exclude_pawn_move_mask = exclude_pawn_moves ? 0ul : ~0ul;
+    BitBoard all_attacked_mask = all_attacked ? ~0ull : 0ull;
+    BitBoard exclude_pawn_move_mask = exclude_pawn_moves ? 0ull : ~0ull;
     if (white) {
         BitBoard pawn_moves = bb_slide_n(board->bb_white_pawn) & empty & exclude_pawn_move_mask;
-        BitBoard pawn_big_moves = bb_slide_n(pawn_moves & 0x0000000000ff0000ul) & empty;
+        BitBoard pawn_big_moves = bb_slide_n(pawn_moves & 0x0000000000ff0000ull) & empty;
         BitBoard pawn_attacks_ne = bb_slide_ne(board->bb_white_pawn) & (all_pieces_black | board->en_passant_target | all_attacked_mask);
         BitBoard pawn_attacks_nw = bb_slide_nw(board->bb_white_pawn) & (all_pieces_black | board->en_passant_target | all_attacked_mask);
         BitBoard ray_moves_n = bb_flood_n(board->bb_white_queen | board->bb_white_rook, empty, true);
@@ -1077,7 +1083,7 @@ static BitBoard *get_pseudo_legal_moves(Board *board, bool white, bool all_attac
         dirmoves[DIR_NW] = (pawn_attacks_nw | ray_moves_nw | king_moves_nw) & (all_attacked_mask | ~all_pieces_white);
     } else {
         BitBoard pawn_moves = bb_slide_s(board->bb_black_pawn) & empty & exclude_pawn_move_mask;
-        BitBoard pawn_big_moves = bb_slide_s(pawn_moves & 0x0000ff0000000000ul) & empty;
+        BitBoard pawn_big_moves = bb_slide_s(pawn_moves & 0x0000ff0000000000ull) & empty;
         BitBoard pawn_attacks_se = bb_slide_se(board->bb_black_pawn) & (all_pieces_white | board->en_passant_target | all_attacked_mask);
         BitBoard pawn_attacks_sw = bb_slide_sw(board->bb_black_pawn) & (all_pieces_white | board->en_passant_target | all_attacked_mask);
         BitBoard ray_moves_n = bb_flood_n(board->bb_black_queen | board->bb_black_rook, empty, true);
@@ -1113,7 +1119,7 @@ static BitBoard *get_pseudo_legal_moves(Board *board, bool white, bool all_attac
         dirmoves[DIR_W] = (ray_moves_w | king_moves_w) & (all_attacked_mask | ~all_pieces_black);
         dirmoves[DIR_NW] = (ray_moves_nw | king_moves_nw) & (all_attacked_mask | ~all_pieces_black);
     }
-    if ((!all_attacked) && (exclude == 0)) {
+    if ((!all_attacked) && (exclude == 0) && (!exclude_pawn_moves)) {
         if (white) {
             board->bb_white_moves = malloc(16 * sizeof(BitBoard));
             memcpy(board->bb_white_moves, dirmoves, 16 * sizeof(BitBoard));
@@ -1215,6 +1221,7 @@ static BitBoard single_check_block_tiles(Board *board, bool defenderWhite) {
 static Move *add_to_moves(Move *moves, size_t *len_moves, size_t *maxlen_moves, Move move) {
     moves[*len_moves] = move;
     (*len_moves)++;
+    printf("new length of moves is %llu\n", *len_moves);
     if (*len_moves == *maxlen_moves) {
         (*maxlen_moves) *= 2;
         return realloc(moves, *maxlen_moves * sizeof(Move));
