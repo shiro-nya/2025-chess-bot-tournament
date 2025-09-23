@@ -9,6 +9,7 @@ If you have questions, or requests for language support, feel free to reach out 
 
 ## Change Log
 Over the course of the contest, changes may be required to the API or rules that contestants should be aware of. Any such changes will be published in this change log.
+- 2025/09/12: An issue has been identified with missing `pthreads.h` dependency on Windows. A fix is in progress.
 - 2025/09/12: Added a rule to the rules: A single literal token must not store more than 64 bits of data.
 - 2025/09/22: Added is_black_turn, deprecated is_game_ended in favor of renamed get_game_state (but the former still works for backward compatibility).
 - 2025/09/19: Added two functions to the Chess API for fetching board turn counts, and one for cloning boards.
