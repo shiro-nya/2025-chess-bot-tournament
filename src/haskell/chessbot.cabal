@@ -1,0 +1,23 @@
+cabal-version:       2.2
+
+name:                chessbot
+version:             0.1.0.0
+license:             BSD-3-Clause
+license-file:        LICENSE
+build-type:          Simple
+extra-source-files:  README.md
+
+executable chessbot
+  hs-source-dirs:      src
+  main-is:             Main.hs
+  default-language:    GHC2024
+  build-depends:       base >= 4.7 && < 5, array, containers, chessapi
+  ghc-options:         -Wall
+                       -Widentities
+                       -Wincomplete-record-updates
+                       -Wmissing-home-modules
+                       -Wpartial-fields
+                       -Wredundant-constraints
+                       -Wno-incomplete-uni-patterns
+                       -Wno-incomplete-patterns
+                       -Wno-missing-signatures

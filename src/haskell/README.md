@@ -1,9 +1,10 @@
-# Getting started (Haskell language version)
+# Getting started (Haskell)
 
-## Setup
-- The Haskell bindings are volunteer-maintained and can be found [here]().
+To get started, just download [Stack](https://haskellstack.org/) and build the bot using `stack build`.
 
-Be sure to refer to the [docs](https://github.com/shiro-nya/2025-chess-bot-tournament/wiki/Chess-API-(Haskell)) to see how to use the API!
+API docs are available [here](https://chayleaf.github.io/shiro-chessapi-hs/Chess.html).
 
-## Specifics
-- For the purpose of this challenge, the "stdlib" is considered to be `base`, `containers` and `array`.
+The Haskell bindings are maintained [externally](https://github.com/chayleaf/shiro-chessapi-hs), please report any issues to @chayleaf.
+
+The only file you're allowed to modify is `src/Main.hs`. However, if you want to update the bindings themselves, you are allowed to update `stack.yaml` to bump the commit hash.
+
