@@ -4,12 +4,18 @@ from ctypes import cdll, CDLL, c_uint8, c_uint64, c_int, c_bool, Structure, cast
 from enum import Enum
 from typing import Optional
 import os
+import platform
 
 
 # import library
-local_dir = os.path.dirname(os.path.realpath(__file__))
-cdll.LoadLibrary(local_dir + "/libchess.so")
-lib = CDLL(local_dir + "/libchess.so")
+if platform.system() == "Windows":
+    local_dir = os.path.dirname(os.path.realpath(__file__))
+    cdll.LoadLibrary(local_dir + "/libchess.dll")
+    lib = CDLL(local_dir + "/libchess.dll")
+else:
+    local_dir = os.path.dirname(os.path.realpath(__file__))
+    cdll.LoadLibrary(local_dir + "/libchess.so")
+    lib = CDLL(local_dir + "/libchess.so")
 
 
 BitBoard = int
