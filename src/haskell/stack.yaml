@@ -1,0 +1,6 @@
+snapshot:
+  compiler: ghc-9.12.2
+
+extra-deps:
+- git: https://github.com/chayleaf/shiro-chessapi-hs.git
+  commit: 643d9d960c1ed73228d9b1b03504c01b52251a87
