@@ -1,5 +1,5 @@
 # Chess bot tournament Kotlin API
-### UNDER CONSTRUCTION: Bindings do not exist yet! Soon!
+[Repository](https://github.com/Superbox2147/chess-api-kt)
 Kotlin bindings for Shiro's Chess bot API for the Neurocord Chess bot tournament
 
 ## Usage
