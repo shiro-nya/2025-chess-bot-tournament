@@ -3,7 +3,6 @@ cabal-version:       2.2
 name:                chessbot
 version:             0.1.0.0
 license:             BSD-3-Clause
-license-file:        LICENSE
 build-type:          Simple
 extra-source-files:  README.md
 

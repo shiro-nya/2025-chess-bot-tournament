@@ -3,4 +3,4 @@ snapshot:
 
 extra-deps:
 - git: https://github.com/chayleaf/shiro-chessapi-hs.git
-  commit: 643d9d960c1ed73228d9b1b03504c01b52251a87
+  commit: 93d34b22a0525143f2e8c13a88dcbb27b84d6e4a

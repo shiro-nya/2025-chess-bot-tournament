@@ -5,14 +5,14 @@
 
 packages:
 - completed:
-    commit: 643d9d960c1ed73228d9b1b03504c01b52251a87
+    commit: 93d34b22a0525143f2e8c13a88dcbb27b84d6e4a
     git: https://github.com/chayleaf/shiro-chessapi-hs.git
     name: chessapi
     pantry-tree:
-      sha256: ba914be07263adb1a5d95c3fa10d2e8bd2e94d6daffc23643dc7defff27c5377
-      size: 1624
+      sha256: 27aeb8318a939ec7e6e207febc7e4ea153afe025881905a6d739d57b567e72b4
+      size: 2240
     version: 0.1.0.0
   original:
-    commit: 643d9d960c1ed73228d9b1b03504c01b52251a87
+    commit: 93d34b22a0525143f2e8c13a88dcbb27b84d6e4a
     git: https://github.com/chayleaf/shiro-chessapi-hs.git
 snapshots: []
