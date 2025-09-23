@@ -66,8 +66,8 @@ typedef struct {
     // pthread_t uci_thread;
     thrd_t uci_thread;
     Board *shared_board;
-    long wtime;
-    long btime;
+    uint64_t wtime;
+    uint64_t btime;
     clock_t turn_started_time;
     Move latest_pushed_move;
     Move latest_opponent_move;
@@ -115,7 +115,7 @@ static int highest_bit(BitBoard v) {
     const uint64_t S[] = {1, 2, 4, 8, 16, 32};
     int i;
 
-    register unsigned long r = 0; // result of log2(v) will go here
+    register uint64_t r = 0; // result of log2(v) will go here
     for (i = 5; i >= 0; i--) {
         if (v & b[i])
         {
@@ -164,7 +164,7 @@ BitBoard chess_get_bitboard_from_index(int index) {
     return ((BitBoard) 1) << index;
 }
 
-static uint64_t rand_long() {
+static uint64_t rand_uint64_t() {
     return ((uint64_t) rand()) ^ (((uint64_t) rand()) << 16) ^ (((uint64_t) rand()) << 32) ^ (((uint64_t) rand()) << 48);
 }
 
@@ -794,8 +794,8 @@ static int uci_process(void *arg) {
                         char *rawtime = strtok(NULL, " ");
                         API->btime = strtol(rawtime, NULL, 10);
                     } else if (!strcmp(token, "infinite")) {
-                        API->btime = (long)1<<31;
-                        API->wtime = (long)1<<31;
+                        API->btime = (uint64_t)1<<31;
+                        API->wtime = (uint64_t)1<<31;
                     }
                     token = strtok(NULL, " ");
                 }
@@ -872,28 +872,28 @@ static Board *interface_get_board() {
     return board;
 }
 
-static long interface_get_time_millis() {
+static uint64_t interface_get_time_millis() {
     //pthread_mutex_lock(&API->mutex);
     mtx_lock(&API->mutex);
-    long millis = API->shared_board->whiteToMove ? API->wtime : API->btime;
+    uint64_t millis = API->shared_board->whiteToMove ? API->wtime : API->btime;
     //pthread_mutex_unlock(&API->mutex);
     mtx_unlock(&API->mutex);
     return millis;
 }
 
-static long interface_get_opponent_time_millis() {
+static uint64_t interface_get_opponent_time_millis() {
     //pthread_mutex_lock(&API->mutex);
     mtx_lock(&API->mutex);
-    long millis = API->shared_board->whiteToMove ? API->btime : API->wtime;
+    uint64_t millis = API->shared_board->whiteToMove ? API->btime : API->wtime;
     //pthread_mutex_unlock(&API->mutex);
     mtx_unlock(&API->mutex);
     return millis;
 }
 
-static long interface_get_elapsed_time_millis() {
+static uint64_t interface_get_elapsed_time_millis() {
     //pthread_mutex_lock(&API->mutex);
     mtx_lock(&API->mutex);
-    long millis = (clock() - API->turn_started_time) / (CLOCKS_PER_SEC / 1000);
+    uint64_t millis = (clock() - API->turn_started_time) / (CLOCKS_PER_SEC / 1000);
     //pthread_mutex_unlock(&API->mutex);
     mtx_unlock(&API->mutex);
     return millis;
@@ -1713,7 +1713,7 @@ static void start_chess_api() {
     // setup zobrist keys
     srand(time(NULL));
     for (int i = 0; i < 781; i++) {
-        zobrist_keys[i] = rand_long();
+        zobrist_keys[i] = rand_uint64_t();
     }
     // start the uci server in its own thread
     uci_start(&API->uci_thread);
@@ -1824,17 +1824,17 @@ void chess_free_board(Board *board) {
     free_board(board);
 }
 
-long chess_get_time_millis() {
+uint64_t chess_get_time_millis() {
     if (API == NULL) start_chess_api();
     return interface_get_time_millis();
 }
 
-long chess_get_opponent_time_millis() {
+uint64_t chess_get_opponent_time_millis() {
     if (API == NULL) start_chess_api();
     return interface_get_opponent_time_millis();
 }
 
-long chess_get_elapsed_time_millis() {
+uint64_t chess_get_elapsed_time_millis() {
     if (API == NULL) start_chess_api();
     return interface_get_elapsed_time_millis();
 }

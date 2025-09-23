@@ -253,20 +253,20 @@ void chess_done();
 \sa chess_get_elapsed_time_millis()
 \return Remaining time, in milliseconds.
 */
-long chess_get_time_millis();
+uint64_t chess_get_time_millis();
 
 //! Returns the remaining time the opponent bot had at the start of its turn, in ms.
 /*!
 \return Remaining time, in milliseconds.
 */
-long chess_get_opponent_time_millis();
+uint64_t chess_get_opponent_time_millis();
 
 //! Returns how much time has elapsed this turn, in ms.
 /*!
 \sa chess_get_time_millis()
 \return Elapsed time, in milliseconds.
 */
-long chess_get_elapsed_time_millis();
+uint64_t chess_get_elapsed_time_millis();
 
 
 ///// BITBOARDS /////
