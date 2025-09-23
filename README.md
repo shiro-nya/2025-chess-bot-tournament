@@ -9,7 +9,7 @@ If you have questions, or requests for language support, feel free to reach out 
 
 ## Change Log
 Over the course of the contest, changes may be required to the API or rules that contestants should be aware of. Any such changes will be published in this change log.
-- 2025/09/12: Added a rule to the rules: A single literal token should not store more than 64 bits of data.
+- 2025/09/12: Added a rule to the rules: A single literal token must not store more than 64 bits of data.
 - 2025/09/22: Added is_black_turn, deprecated is_game_ended in favor of renamed get_game_state (but the former still works for backward compatibility).
 - 2025/09/19: Added two functions to the Chess API for fetching board turn counts, and one for cloning boards.
 - 2025/09/18: Added a function to the Chess API for fetching the opponent's latest move.
@@ -31,7 +31,7 @@ Please read this section carefully! It outlines what is available to your bot, a
 - Don't try to store code in variables or function/class/file metadata to be executed via an existing language feature. In particular, don't try to hide code in arbitrary-length strings or ints as pertains to your language. Writing your own VM is okay though, if you really want to go that route.
 - The only libraries available will be the standard libraries for your language plus the chess API supplied in this repo. However, your bot must not make any network connections, read or write files, start or end threads or otherwise run code in the background/in parallel, or use built-in arbitrary execution functions (e.g. Python's `exec()`).
 - Your source code submission must not exceed 1024 tokens. This refers to the tokens the lexer for your language outputs. These will be counted using [toknt](https://github.com/chayleaf/toknt/tree/master).
-  - A single literal token should not store more than 64 bits of data.
+  - A single literal token must not store more than 64 bits of data.
 - Bots shouldn't expect to start from a new chess board state, and should always play from the board provided by the API. Tournament rounds may pre-play an opening move series. Bots may not be restarted between tournament games, so be careful what you cache.
 
 ## FAQ
