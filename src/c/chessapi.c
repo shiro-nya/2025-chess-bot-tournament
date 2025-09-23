@@ -7,8 +7,8 @@
 #include <time.h>
 
 /// TESTING ONLY ///
-#undef __STDC_NO_THREADS__
-#define __STDC_NO_THREADS__ 1
+//#undef __STDC_NO_THREADS__
+//#define __STDC_NO_THREADS__ 1
 /// TESTING ONLY ///
 
 #if __STDC_NO_THREADS__
