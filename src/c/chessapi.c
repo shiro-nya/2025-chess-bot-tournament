@@ -1,11 +1,10 @@
 #include "chessapi.h"
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
+#include <threads.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <semaphore.h>
 #include <time.h>
 
 #define CHESS_BOT_NAME "My Chess Bot"
@@ -30,15 +29,52 @@
 #define DIR_SEE 15
 
 typedef struct {
-    pthread_t uci_thread;
+    int locks;
+    mtx_t locks_mutex;
+    mtx_t wait_mutex;
+} Semaphore;
+
+void semaphore_init(Semaphore *sem, int locks) {
+    sem->locks = locks;
+    mtx_init(&sem->locks_mutex, mtx_plain);
+    mtx_init(&sem->wait_mutex, mtx_plain);
+    if (locks == 0) {
+        mtx_lock(&sem->wait_mutex);
+    }
+}
+
+void semaphore_post(Semaphore *sem) {
+    mtx_lock(&sem->locks_mutex);
+    sem->locks++;
+    if (sem->locks == 1) {  // if we added capacity, let others into the mutex
+        mtx_unlock(&sem->wait_mutex);
+    }
+    mtx_unlock(&sem->locks_mutex);
+}
+
+void semaphore_wait(Semaphore *sem) {
+    mtx_lock(&sem->wait_mutex);
+    mtx_lock(&sem->locks_mutex);
+    sem->locks--;
+    if (sem->locks > 0) {  // let others in if we still have capacity
+        mtx_unlock(&sem->wait_mutex);
+    }
+    mtx_unlock(&sem->locks_mutex);
+}
+
+typedef struct {
+    // pthread_t uci_thread;
+    thrd_t uci_thread;
     Board *shared_board;
     long wtime;
     long btime;
     clock_t turn_started_time;
     Move latest_pushed_move;
     Move latest_opponent_move;
-    pthread_mutex_t mutex;
-    sem_t intermission_mutex;
+    // pthread_mutex_t mutex;
+    mtx_t mutex;
+    // sem_t intermission_mutex;
+    Semaphore intermission_mutex;
 } InternalAPI;
 
 typedef uint64_t BitBoard;
@@ -686,7 +722,7 @@ static void undo_move(Board *board) {
 }
 
 // Listens for and responds to UCI messages from the GUI. Updates API state as needed.
-static void *uci_process(void *arg) {
+static int uci_process(void *arg) {
     char line[4096];
     bool running = true;
     while (running) {
@@ -707,7 +743,8 @@ static void *uci_process(void *arg) {
                 printf("readyok\n");
                 fflush(stdout);
             } else if (!strcmp(token, "position")) {
-                pthread_mutex_lock(&API->mutex);
+                //pthread_mutex_lock(&API->mutex);
+                mtx_lock(&API->mutex);
                 memset(&API->latest_opponent_move, 0, sizeof(Move));
                 token = strtok(NULL, " ");
                 if (!strcmp(token, "fen")) {
@@ -716,7 +753,8 @@ static void *uci_process(void *arg) {
                     token = strtok(NULL, " ");
                     while (token && strcmp(token, "moves")) {
                         if (next_token > fenstring + 256) {
-                            pthread_exit(NULL);
+                            //pthread_exit(NULL);
+                            return 1;
                         }
                         strcpy(next_token, token);
                         next_token += strlen(token) + 1;
@@ -742,9 +780,11 @@ static void *uci_process(void *arg) {
                     }
                     API->latest_opponent_move = m;
                 }
-                pthread_mutex_unlock(&API->mutex);
+                //pthread_mutex_unlock(&API->mutex);
+                mtx_unlock(&API->mutex);
             } else if (!strcmp(token, "go")) {
-                pthread_mutex_lock(&API->mutex);
+                //pthread_mutex_lock(&API->mutex);
+                mtx_lock(&API->mutex);
                 token = strtok(NULL, " ");
                 while (token != NULL) {
                     if (!strcmp(token, "wtime")) {
@@ -759,24 +799,28 @@ static void *uci_process(void *arg) {
                     }
                     token = strtok(NULL, " ");
                 }
-                sem_post(&API->intermission_mutex);
+                semaphore_post(&API->intermission_mutex);
                 API->turn_started_time = clock();
-                pthread_mutex_unlock(&API->mutex);
+                //pthread_mutex_unlock(&API->mutex);
+                mtx_unlock(&API->mutex);
             } else if (!strcmp(token, "stop")) {
                 // does nothing for now
             } else if (!strcmp(token, "quit")) {
-                pthread_cancel(API->uci_thread);
+                //pthread_cancel(API->uci_thread);
+                return 0;
                 running = false;
             }
             token = strtok(NULL, " ");
         }
     }
-    pthread_exit(NULL);
+    //pthread_exit(NULL);
+    return 0;
 }
 
 // Start the UCI listener.
-static void uci_start(pthread_t *thread_id) {
-    pthread_create(thread_id, NULL, &uci_process, NULL);
+static void uci_start(thrd_t *thread_id) {
+    //pthread_create(thread_id, NULL, &uci_process, NULL);
+    thrd_create(thread_id, &uci_process, NULL);
 }
 
 // gets API->latest_pushed_move and formats in standard game notation, storing result in buffer
@@ -802,51 +846,65 @@ static void uci_finished_searching() {
 // any API methods that require thread safing are placed here
 
 static void interface_push(Move move) {
-    pthread_mutex_lock(&API->mutex);
+    // pthread_mutex_lock(&API->mutex);
+    mtx_lock(&API->mutex);
     API->latest_pushed_move = move;
     uci_info();
-    pthread_mutex_unlock(&API->mutex);
+    // pthread_mutex_unlock(&API->mutex);
+    mtx_unlock(&API->mutex);
 }
 
 static void interface_done() {
-    pthread_mutex_lock(&API->mutex);
+    //pthread_mutex_lock(&API->mutex);
+    mtx_lock(&API->mutex);
     uci_finished_searching();
-    pthread_mutex_unlock(&API->mutex);
-    sem_wait(&API->intermission_mutex);
+    //pthread_mutex_unlock(&API->mutex);
+    mtx_unlock(&API->mutex);
+    semaphore_wait(&API->intermission_mutex);
 }
 
 static Board *interface_get_board() {
-    pthread_mutex_lock(&API->mutex);
+    //pthread_mutex_lock(&API->mutex);
+    mtx_lock(&API->mutex);
     Board *board = clone_board(API->shared_board);
-    pthread_mutex_unlock(&API->mutex);
+    //pthread_mutex_unlock(&API->mutex);
+    mtx_unlock(&API->mutex);
     return board;
 }
 
 static long interface_get_time_millis() {
-    pthread_mutex_lock(&API->mutex);
+    //pthread_mutex_lock(&API->mutex);
+    mtx_lock(&API->mutex);
     long millis = API->shared_board->whiteToMove ? API->wtime : API->btime;
-    pthread_mutex_unlock(&API->mutex);
+    //pthread_mutex_unlock(&API->mutex);
+    mtx_unlock(&API->mutex);
     return millis;
 }
 
 static long interface_get_opponent_time_millis() {
-    pthread_mutex_lock(&API->mutex);
+    //pthread_mutex_lock(&API->mutex);
+    mtx_lock(&API->mutex);
     long millis = API->shared_board->whiteToMove ? API->btime : API->wtime;
-    pthread_mutex_unlock(&API->mutex);
+    //pthread_mutex_unlock(&API->mutex);
+    mtx_unlock(&API->mutex);
     return millis;
 }
 
 static long interface_get_elapsed_time_millis() {
-    pthread_mutex_lock(&API->mutex);
+    //pthread_mutex_lock(&API->mutex);
+    mtx_lock(&API->mutex);
     long millis = (clock() - API->turn_started_time) / (CLOCKS_PER_SEC / 1000);
-    pthread_mutex_unlock(&API->mutex);
+    //pthread_mutex_unlock(&API->mutex);
+    mtx_unlock(&API->mutex);
     return millis;
 }
 
 static Move interface_get_opponent_move() {
-    pthread_mutex_lock(&API->mutex);
+    //pthread_mutex_lock(&API->mutex);
+    mtx_lock(&API->mutex);
     Move move = API->latest_opponent_move;
-    pthread_mutex_unlock(&API->mutex);
+    //pthread_mutex_unlock(&API->mutex);
+    mtx_unlock(&API->mutex);
     return move;
 }
 
@@ -1648,8 +1706,10 @@ static void start_chess_api() {
     API->wtime = 0;
     API->btime = 0;
     memset(&API->latest_opponent_move, 0, sizeof(Move));
-    pthread_mutex_init(&API->mutex, NULL);
-    sem_init(&API->intermission_mutex, 0, 0);
+    //pthread_mutex_init(&API->mutex, NULL);
+    //sem_init(&API->intermission_mutex, 0, 0);
+    mtx_init(&API->mutex, mtx_plain);
+    semaphore_init(&API->intermission_mutex, 0);
     // setup zobrist keys
     srand(time(NULL));
     for (int i = 0; i < 781; i++) {
@@ -1658,7 +1718,7 @@ static void start_chess_api() {
     // start the uci server in its own thread
     uci_start(&API->uci_thread);
     // block until uci endpoint says go
-    sem_wait(&API->intermission_mutex);
+    semaphore_wait(&API->intermission_mutex);
 }
 
 // Returns true if a threefold repetition has occurred on [board]
