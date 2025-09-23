@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ctypes import cdll, CDLL, c_uint8, c_uint64, c_int, c_bool, Structure, c_long, cast, pointer, byref, POINTER, ARRAY
+from ctypes import cdll, CDLL, c_uint8, c_uint64, c_int, c_bool, Structure, cast, byref, POINTER
 from enum import Enum
 from typing import Optional
 import os
@@ -235,11 +235,11 @@ lib.chess_push.restype = None
 lib.chess_done.argtypes = ()
 lib.chess_done.restype = None
 lib.chess_get_time_millis.argtypes = ()
-lib.chess_get_time_millis.restype = c_long
+lib.chess_get_time_millis.restype = c_uint64
 lib.chess_get_opponent_time_millis.argtypes = ()
-lib.chess_get_opponent_time_millis.restype = c_long
+lib.chess_get_opponent_time_millis.restype = c_uint64
 lib.chess_get_elapsed_time_millis.argtypes = ()
-lib.chess_get_elapsed_time_millis.restype = c_long
+lib.chess_get_elapsed_time_millis.restype = c_uint64
 lib.chess_free_moves_array.argtypes = (POINTER(Move),)
 lib.chess_free_moves_array.restype = None
 lib.chess_get_piece_from_index.argtypes = (POINTER(Board), c_int)
