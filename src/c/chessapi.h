@@ -7,6 +7,13 @@
 #include <stdbool.h>
 #include "bitboard.h"
 
+//! For Windows(MSVC) compatibility
+#if defined(_MSC_VER)
+    #define DLLEXPORT __declspec(dllexport)
+#else
+    #define DLLEXPORT
+#endif
+
 //! Player color
 typedef enum {
     WHITE, /*!< The player using white pieces*/
@@ -55,7 +62,7 @@ Caller must free the board with free_board
 \sa chess_free_board()
 \return The current board being played in the chess match
 */
-Board *chess_get_board();
+DLLEXPORT Board *chess_get_board();
 
 //! Returns a clone of the given board
 /*!
@@ -64,7 +71,7 @@ Caller must free the board with free_board
 \sa chess_free_board()
 \return A clone of the given board
 */
-Board *chess_clone_board(Board *board);
+DLLEXPORT Board *chess_clone_board(Board *board);
 
 //! Returns an array of legal moves
 /*!
@@ -73,7 +80,7 @@ Caller must free array
 \param len A pointer in which the array length will be stored
 \return A pointer to the start of an array of moves
 */
-Move *chess_get_legal_moves(Board *board, int *len);
+DLLEXPORT Move *chess_get_legal_moves(Board *board, int *len);
 
 //! Returns whether it is white's turn or not
 /*!
@@ -81,7 +88,7 @@ Move *chess_get_legal_moves(Board *board, int *len);
 \param board The board to consider
 \return True if it is white to move
 */
-bool chess_is_white_turn(Board *board);
+DLLEXPORT bool chess_is_white_turn(Board *board);
 
 //! Returns whether it is black's turn or not
 /*!
@@ -89,7 +96,7 @@ bool chess_is_white_turn(Board *board);
 \param board The board to consider
 \return True if it is black to move
 */
-bool chess_is_black_turn(Board *board);
+DLLEXPORT bool chess_is_black_turn(Board *board);
 
 //! Skips your turn on the given board.
 /*!
@@ -98,21 +105,21 @@ Can be un-done using undo_move as usual.
 \sa chess_undo_move()
 \param board The board to consider
 */
-void chess_skip_turn(Board *board);
+DLLEXPORT void chess_skip_turn(Board *board);
 
 //! Returns whether the current player is in check
 /*!
 \param board The board to consider
 \return True if the current player is in check
 */
-bool chess_in_check(Board *board);
+DLLEXPORT bool chess_in_check(Board *board);
 
 //! Returns whether the current player is in checkmate
 /*!
 \param board The board to consider
 \return True if the current player is in checkmate
 */
-bool chess_in_checkmate(Board *board);
+DLLEXPORT bool chess_in_checkmate(Board *board);
 
 //! Returns whether the current player is in a draw
 /*!
@@ -120,7 +127,7 @@ This function considers positions with no legal moves, the 50-move rule, and thr
 \param board The board to consider
 \return True if the current game is a draw for any reason
 */
-bool chess_in_draw(Board *board);
+DLLEXPORT bool chess_in_draw(Board *board);
 
 
 //! Returns if the indicated player has kingside castling rights
@@ -131,7 +138,7 @@ You lose kingside castling rights if you move your king or the kingside rook
 \param color The player to consider
 \return True if the player has kingside castling rights
 */
-bool chess_can_kingside_castle(Board *board, PlayerColor color);
+DLLEXPORT bool chess_can_kingside_castle(Board *board, PlayerColor color);
 
 //! Returns if the indicated player has queenside castling rights
 /*!
@@ -141,7 +148,7 @@ You lose queenside castling rights if you move your king or the queenside rook
 \param color The player to consider
 \return True if the player has queenside castling rights
 */
-bool chess_can_queenside_castle(Board *board, PlayerColor color);
+DLLEXPORT bool chess_can_queenside_castle(Board *board, PlayerColor color);
 
 //! Returns one of the GameState constants for the given board
 /*!
@@ -153,14 +160,14 @@ This is about the same cost as calls to in_check(), in_draw(), etc., so if you p
 \param board The board to consider
 \return The current GameState
 */
-GameState chess_get_game_state(Board *board);
+DLLEXPORT GameState chess_get_game_state(Board *board);
 
 //! Returns one of the GameState constants for the given board
 /*!
 DEPRECATED: Use chess_get_game_state instead.
 \sa chess_get_game_state()
 */
-GameState chess_is_game_ended(Board *board);
+DLLEXPORT GameState chess_is_game_ended(Board *board);
 
 //! Returns the Zobrist hash that represents the board.
 /*!
@@ -169,7 +176,7 @@ The hashes consider en passant and castling possibilities as part of the hash, t
 \param board The board to consider
 \return The hash associated with the board
 */
-uint64_t chess_zobrist_key(Board *board);
+DLLEXPORT uint64_t chess_zobrist_key(Board *board);
 
 //! Performs a move on the board
 /*!
@@ -177,7 +184,7 @@ uint64_t chess_zobrist_key(Board *board);
 \param board The board to perform the move on
 \param move The move to perform
 */
-void chess_make_move(Board *board, Move move);
+DLLEXPORT void chess_make_move(Board *board, Move move);
 
 //! Undo the previous move on the board
 /*!
@@ -186,14 +193,14 @@ It is an error to call this function on a board which has not had any moves play
 \sa chess_make_move()
 \param board The board to undo the move from
 */
-void chess_undo_move(Board *board);
+DLLEXPORT void chess_undo_move(Board *board);
 
 //! free() function for Board instances
 /*!
 Board instances are invalid after being freed and should not be used after being given to this function
 \param board The board to be freed
 */
-void chess_free_board(Board *board);
+DLLEXPORT void chess_free_board(Board *board);
 
 //! Returns the BitBoard for the given color and piece type from the board.
 /*!
@@ -203,7 +210,7 @@ For more info on working with BitBoards, see "bitboard.h"
 \param piece_type The type of piece to get
 \return A BitBoard with bits set to 1 for all squares containing the described piece
 */
-BitBoard chess_get_bitboard(Board *board, PlayerColor color, PieceType piece_type);
+DLLEXPORT BitBoard chess_get_bitboard(Board *board, PlayerColor color, PieceType piece_type);
 
 //! Returns the full move counter for the board.
 /*
@@ -211,7 +218,7 @@ This number starts at 1, and increments each time black moves.
 \param board the borad to get the full move counter of
 \return The current value of the full move counter
 */
-int chess_get_full_moves(Board *board);
+DLLEXPORT int chess_get_full_moves(Board *board);
 
 //! Returns the half move counter for the board.
 /*
@@ -221,7 +228,7 @@ This is mainly used for tracking progress to the 50-move draw rule.
 \param board the borad to get the full move counter of
 \return The current value of the full move counter
 */
-int chess_get_half_moves(Board *board);
+DLLEXPORT int chess_get_half_moves(Board *board);
 
 
 ///// MOVE SUBMISSION /////
@@ -234,7 +241,7 @@ The latest move pushed by the bot will be played by the server once chess_done()
 \sa chess_done()
 \param move The move to submit
 */
-void chess_push(Move move);
+DLLEXPORT void chess_push(Move move);
 
 //! Ends the current turn.
 /*!
@@ -242,7 +249,7 @@ The latest move pushed will be played by the server.
 This method will block until the opponent's turn has passed.
 \sa chess_push()
 */
-void chess_done();
+DLLEXPORT void chess_done();
 
 
 ///// TIME MANAGEMENT /////
@@ -253,20 +260,20 @@ void chess_done();
 \sa chess_get_elapsed_time_millis()
 \return Remaining time, in milliseconds.
 */
-uint64_t chess_get_time_millis();
+DLLEXPORT uint64_t chess_get_time_millis();
 
 //! Returns the remaining time the opponent bot had at the start of its turn, in ms.
 /*!
 \return Remaining time, in milliseconds.
 */
-uint64_t chess_get_opponent_time_millis();
+DLLEXPORT uint64_t chess_get_opponent_time_millis();
 
 //! Returns how much time has elapsed this turn, in ms.
 /*!
 \sa chess_get_time_millis()
 \return Elapsed time, in milliseconds.
 */
-uint64_t chess_get_elapsed_time_millis();
+DLLEXPORT uint64_t chess_get_elapsed_time_millis();
 
 
 ///// BITBOARDS /////
@@ -281,7 +288,7 @@ That is, index 0 is a1, index 7 is h1, index 63 is h8.
 \param index The index of the square.
 \return A PieceType constant representing the type of piece on that square.
 */
-PieceType chess_get_piece_from_index(Board *board, int index);
+DLLEXPORT PieceType chess_get_piece_from_index(Board *board, int index);
 
 //! Returns the type of piece on the square set on the given bitboard.
 /*!
@@ -291,7 +298,7 @@ This function expects a bitboard with a single bit set, such as the kind you wou
 \param bitboard The bitboard of the square.
 \return A PieceType constant representing the type of piece on that square.
 */
-PieceType chess_get_piece_from_bitboard(Board *board, BitBoard bitboard);
+DLLEXPORT PieceType chess_get_piece_from_bitboard(Board *board, BitBoard bitboard);
 
 //! Returns the color of piece on the square at the given index.
 /*!
@@ -302,7 +309,7 @@ That is, index 0 is a1, index 7 is h1, index 63 is h8.
 \param index The index of the square.
 \return A PlayerColor constant representing the color of piece on that square.
 */
-PlayerColor chess_get_color_from_index(Board *board, int index);
+DLLEXPORT PlayerColor chess_get_color_from_index(Board *board, int index);
 
 //! Returns the color of piece on the square set on the given bitboard.
 /*!
@@ -312,7 +319,7 @@ This function expects a bitboard with a single bit set, such as the kind you wou
 \param bitboard The bitboard of the square.
 \return A PlayerColor constant representing the color of piece on that square.
 */
-PlayerColor chess_get_color_from_bitboard(Board *board, BitBoard bitboard);
+DLLEXPORT PlayerColor chess_get_color_from_bitboard(Board *board, BitBoard bitboard);
 
 //! Returns a square index equivalent to the square indicated by the given bitboard.
 /*!
@@ -321,7 +328,7 @@ This function expects a bitboard with a single bit set, such as the kind you wou
 \param bitboard The bitboard to get the square index of.
 \return An index from 0-63 indicating the set square.
 */
-int chess_get_index_from_bitboard(BitBoard bitboard);
+DLLEXPORT int chess_get_index_from_bitboard(BitBoard bitboard);
 
 //! Returns a bitboard equivalent to the square indicated by the given index.
 /*!
@@ -331,7 +338,7 @@ That is, index 0 is a1, index 7 is h1, index 63 is h8.
 \param index The square index to get the bitboard of.
 \return A bitboard with a single bit set on the associated square.
 */
-BitBoard chess_get_bitboard_from_index(int index);
+DLLEXPORT BitBoard chess_get_bitboard_from_index(int index);
 
 
 ///// OTHER /////
@@ -342,7 +349,7 @@ BitBoard chess_get_bitboard_from_index(int index);
 If no moves have been made yet, the returned move will have all its fields set to zero.
 \return The move made by the opponent on the last ply.
 */
-Move chess_get_opponent_move();
+DLLEXPORT Move chess_get_opponent_move();
 
 //! Free function for an array of moves.
 /*!
@@ -351,7 +358,7 @@ Move arrays are invalid after being given to this function and should not be use
 Under the hood this is just a normal free(), but it's convenient for external bindings to include it here.
 \param moves A pointer to the move array to free
 */
-void chess_free_moves_array(Move *moves);
+DLLEXPORT void chess_free_moves_array(Move *moves);
 
 #ifdef __cplusplus
 }
