@@ -808,8 +808,8 @@ static int uci_process(void *arg) {
                 // does nothing for now
             } else if (!strcmp(token, "quit")) {
                 //pthread_cancel(API->uci_thread);
-                return 0;
                 running = false;
+                exit(0);
             }
             token = strtok(NULL, " ");
         }
