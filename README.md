@@ -45,6 +45,11 @@ Please read this section carefully! It outlines what is available to your bot, a
 ## FAQ
 - Can you add support for my language?
   - I'll consider adding support for languages granted the token counter supports them. I welcome community submissions of language interfaces to the provided API as long as they don't provide additional functionality, if you end up making and sharing one then I'll let people use it for free (i.e. it won't count toward your token limit).
+- I think I found a bug! What should I do?
+  - Ask in the discord, and confirm with others that it's a bug
+  - If it's a bug with language bindings, please reach out to the maintainer/author
+  - Otherwise, create an issue here and describe your issue
+    - Please include the following information: Operating system, coding language, and if applicable a PGN/FEN of the chess game where it happened (Cute Chess has a button to export this)
 
 ## Credits
 - Sebastian Lague, whose [video](https://www.youtube.com/watch?v=Ne40a5LkK6A) inspired this contest!
