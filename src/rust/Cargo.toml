@@ -1,0 +1,7 @@
+[package]
+name = "chess-bot"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chess-api = { git = "https://github.com/owobred/chess-competition-rust-bindings", rev = "e4041515cec8f5d0b138b2bc6595f031b7fdd67d" }
