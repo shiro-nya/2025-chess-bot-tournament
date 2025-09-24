@@ -14,7 +14,7 @@
 typedef uint64_t BitBoard;
 
 // Debug print function
-// [buffer] should be at least 72 bytes
+// [buffer] should be at least 73 bytes
 void dump_bitboard(BitBoard board, char *buffer);
 
 // Directional BitBoard functions below! Each function is related to sliding motion along the cardinal directions,
