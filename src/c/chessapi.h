@@ -8,10 +8,12 @@
 #include "bitboard.h"
 
 //! For Windows(MSVC) compatibility
-#if defined(_MSC_VER)
-    #define DLLEXPORT __declspec(dllexport)
-#else
-    #define DLLEXPORT
+#ifndef DLLEXPORT
+    #if defined(_MSC_VER)
+        #define DLLEXPORT __declspec(dllexport)
+    #else
+        #define DLLEXPORT
+    #endif
 #endif
 
 //! Player color
