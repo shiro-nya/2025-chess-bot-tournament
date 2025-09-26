@@ -109,7 +109,7 @@ static int highest_bit(BitBoard v) {
     const uint64_t S[] = {1, 2, 4, 8, 16, 32};
     int i;
 
-    register uint64_t r = 0; // result of log2(v) will go here
+    uint64_t r = 0; // result of log2(v) will go here
     for (i = 5; i >= 0; i--) {
         if (v & b[i])
         {
@@ -131,7 +131,7 @@ PieceType chess_get_piece_from_bitboard(Board *board, BitBoard bitboard) {
     if (bitboard & (board->bb_white_knight | board->bb_black_knight)) return KNIGHT;
     if (bitboard & (board->bb_white_bishop | board->bb_black_bishop)) return BISHOP;
     if (bitboard & (board->bb_white_king | board->bb_black_king)) return KING;
-    return 0;  // empty square!
+    return (PieceType)0;  // empty square!
 }
 
 PlayerColor chess_get_color_from_index(Board *board, int index) {
@@ -147,7 +147,7 @@ PlayerColor chess_get_color_from_bitboard(Board *board, BitBoard bitboard) {
         | board->bb_black_rook;
     if ((bitboard & all_pieces_white) > 0) return WHITE;
     if ((bitboard & all_pieces_black) > 0) return BLACK;
-    return -1;  // empty square!
+    return (PlayerColor)-1;  // empty square!
 }
 
 int chess_get_index_from_bitboard(BitBoard bitboard) {
@@ -348,9 +348,9 @@ static void clear_board(Board *board) {
     calc_zobrist(board);
 }
 
-static void set_board_from_fen(Board *board, char *fen) {
+static void set_board_from_fen(Board *board, const char *fen) {
     // if no fen given, use starting pos
-    char *use_fen = (fen != NULL) ? fen : "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    const char *use_fen = (fen != NULL) ? fen : "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     clear_board(board);
     board->can_castle_bk = false;
     board->can_castle_bq = false;
@@ -372,10 +372,10 @@ static void set_board_from_fen(Board *board, char *fen) {
             case 'K': board->bb_white_king |= place_piece; break;
             case 'P': board->bb_white_pawn |= place_piece; break;
             case '/': break;
-            default:
+            default: {
                 char spaces = *use_fen - '0';
                 place_piece <<= (spaces - 1);
-                break;
+            } break;
         }
         if (*use_fen == '/') {
             use_fen++;
@@ -1023,7 +1023,7 @@ static BitBoard get_pins_nwse(Board *board, bool white) {
 // If [exclude_pawn_moves], pawn forward advances are not included (effectively making this only return attacks).
 // Caller must free move array.
 static BitBoard *get_pseudo_legal_moves(Board *board, bool white, bool all_attacked, BitBoard exclude, bool exclude_pawn_moves) {
-    BitBoard *dirmoves = malloc(16*sizeof(BitBoard));
+    BitBoard *dirmoves = (BitBoard*)malloc(16*sizeof(BitBoard));
     if ((!all_attacked) && (exclude == 0) && (!exclude_pawn_moves)) {
         if (white && board->bb_white_moves) {
             memcpy(dirmoves, board->bb_white_moves, 16*sizeof(BitBoard));
@@ -1121,10 +1121,10 @@ static BitBoard *get_pseudo_legal_moves(Board *board, bool white, bool all_attac
     }
     if ((!all_attacked) && (exclude == 0) && (!exclude_pawn_moves)) {
         if (white) {
-            board->bb_white_moves = malloc(16 * sizeof(BitBoard));
+            board->bb_white_moves =(BitBoard*)malloc(16 * sizeof(BitBoard));
             memcpy(board->bb_white_moves, dirmoves, 16 * sizeof(BitBoard));
         } else {
-            board->bb_black_moves = malloc(16 * sizeof(BitBoard));
+            board->bb_black_moves = (BitBoard*)malloc(16 * sizeof(BitBoard));
             memcpy(board->bb_black_moves, dirmoves, 16 * sizeof(BitBoard));
         }
     }
@@ -1224,7 +1224,7 @@ static Move *add_to_moves(Move *moves, size_t *len_moves, size_t *maxlen_moves, 
     //printf("new length of moves is %llu\n", *len_moves);
     if (*len_moves == *maxlen_moves) {
         (*maxlen_moves) *= 2;
-        return realloc(moves, *maxlen_moves * sizeof(Move));
+        return (Move*)realloc(moves, *maxlen_moves * sizeof(Move));
     }
     return moves;
 }
@@ -1694,7 +1694,7 @@ static Move *get_legal_moves(Board *board, int *len) {
         moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
     }
     // shrink array to fit
-    moves = realloc(moves, len_moves * sizeof(Move));
+    moves = (Move*)realloc(moves, len_moves * sizeof(Move));
     *len = len_moves;
     free(pseudo_moves);
     free(opp_pseudo_moves);
@@ -1729,8 +1729,8 @@ static bool is_threefold_draw(Board *board) {
     // i hate everything
     int cur_size = 0;
     int max_size = 1;
-    Board **boards = malloc(sizeof(Board *));
-    int *counts = malloc(sizeof(int));
+    Board **boards = (Board**)malloc(sizeof(Board *));
+    int *counts = (int*)malloc(sizeof(int));
     Board *cur_board = board;
     bool hit, found = false;
     while (cur_board) {
@@ -1749,8 +1749,8 @@ static bool is_threefold_draw(Board *board) {
         if (!hit) {
             if (cur_size == max_size) {
                 max_size *= 2;
-                boards = realloc(boards, max_size*sizeof(Board *));
-                counts = realloc(counts, max_size*sizeof(int));
+                boards = (Board**)realloc(boards, max_size*sizeof(Board *));
+                counts = (int*)realloc(counts, max_size*sizeof(int));
             }
             boards[cur_size] = cur_board;
             counts[cur_size] = 0;
@@ -1765,7 +1765,7 @@ static bool is_threefold_draw(Board *board) {
 }
 
 // Returns GAME_NORMAL, GAME_STALEMATE or GAME_CHECKMATE based on the state on [board]
-static int get_board_end_state(Board *board) {
+static GameState get_board_end_state(Board *board) {
     if (board->halfmoves >= 50) return GAME_STALEMATE;
     if (is_threefold_draw(board)) return GAME_STALEMATE;
     int num_legal_moves;
