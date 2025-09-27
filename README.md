@@ -9,6 +9,8 @@ If you have questions, or requests for language support, feel free to reach out 
 
 ## Change Log
 Over the course of the contest, changes may be required to the API or rules that contestants should be aware of. Any such changes will be published in this change log.
+- 2025/09/27:
+  - Recognizing the existence of some bugs that may have hindered testing for contestants, the submission period will be extended by two weeks to **November 14th, 2025 @ 12:00AM EST**. If you encounter issues with the Chess API, please check first that you are using the latest version, as only major changes are announced in this change log.
 - 2025/09/23:
   - A new version of the C API has been pushed which should fix issues occuring on Windows
   - I'm aware of an issue on Mac OS related to missing `threads.h`. A fix for this is coming, but there isn't much of a workaround currently.
@@ -31,7 +33,7 @@ Over the course of the contest, changes may be required to the API or rules that
   - You will likely want a program that can interface with UCI to test your bot with. One such program is [Cute Chess](https://cutechess.com), which will be used to host the tournament.
 - When you're happy with your bot, submit your source code using the [submission form](https://forms.gle/hUD66B5Aec3Z64aJ7)!
   - You will be able to edit your entry until submissions close.
-  - Submissions will close **November 1, 2025 @ 12:00AM EST**
+  - Submissions will close **November 14th, 2025 @ 12:00AM EST**
 
 ## Rules
 Please read this section carefully! It outlines what is available to your bot, and how to make a valid submission.
