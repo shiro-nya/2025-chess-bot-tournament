@@ -1226,26 +1226,6 @@ static void add_to_moves(Move *moves, size_t *len_moves, size_t maxlen_moves, Mo
 }
 
 // Returns the fully legal moves on [board].
-// Caller responsible for freeing array.
-static Move *get_legal_moves(Board *board, int *len) {
-    // This is very likely enough to hold all moves
-    const int CONSERVATIVE_SIZE = 256;
-    
-    Move *moves = (Move*)malloc(CONSERVATIVE_SIZE * sizeof(Move));
-    *len = chess_get_legal_moves_inplace(board, moves, CONSERVATIVE_SIZE);
-
-    moves = (Move*)realloc(moves, *len * sizeof(Move));
-
-    if (*len > CONSERVATIVE_SIZE)
-    {
-        // Very unlikely fallback
-        *len = chess_get_legal_moves_inplace(board, moves, *len);
-    }
-
-    return moves;
-}
-
-// Returns the fully legal moves on [board].
 static int get_legal_moves_inplace(Board *board, Move *moves, size_t maxlen_moves)
 {
     bool white = is_white_turn(board);
@@ -1713,6 +1693,26 @@ static int get_legal_moves_inplace(Board *board, Move *moves, size_t maxlen_move
     free(opp_pseudo_moves);
 
     return (int)len_moves;
+}
+
+// Returns the fully legal moves on [board].
+// Caller responsible for freeing array.
+static Move *get_legal_moves(Board *board, int *len) {
+    // This is very likely enough to hold all moves
+    const int CONSERVATIVE_SIZE = 256;
+    
+    Move *moves = (Move*)malloc(CONSERVATIVE_SIZE * sizeof(Move));
+    *len = get_legal_moves_inplace(board, moves, CONSERVATIVE_SIZE);
+
+    moves = (Move*)realloc(moves, *len * sizeof(Move));
+
+    if (*len > CONSERVATIVE_SIZE)
+    {
+        // Very unlikely fallback
+        *len = get_legal_moves_inplace(board, moves, *len);
+    }
+
+    return moves;
 }
 
 // Starts the Chess API internals, and returns the interface to the bot for access.
