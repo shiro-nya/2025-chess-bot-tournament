@@ -7,8 +7,8 @@
 #include <stdint.h>
 #include <time.h>
 
-#define CHESS_BOT_NAME "My Chess Bot"
-#define BOT_AUTHOR_NAME "Author Name Here"
+#define CHESS_BOT_NAME getenv("CHESS_BOT_NAME") ? getenv("CHESS_BOT_NAME") : "My Chess Bot"
+#define BOT_AUTHOR_NAME getenv("BOT_AUTHOR_NAME") ? getenv("BOT_AUTHOR_NAME") : "Author Name Here"
 
 // ray direction constants (last 8 for knights)
 #define DIR_N 0
