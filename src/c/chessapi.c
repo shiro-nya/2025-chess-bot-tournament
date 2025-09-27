@@ -470,6 +470,10 @@ static Board *clone_board(Board * board) {
 // Moves are presumed legal.
 static void make_move(Board *board, Move move) {
     Board *saved_board = clone_board(board); // note: makes a new ref to the board history
+    saved_board->bb_black_moves = board->bb_black_moves; // transfer our caches to the clone
+    saved_board->bb_white_moves = board->bb_white_moves; // transfer our caches to the clone
+    board->bb_black_moves = NULL; // remove caches from current board (move invalidates)
+    board->bb_white_moves = NULL; // remove caches from current board (move invalidates)
     //saved_board->last_board = board->last_board;  // should be unnecessary
     if (board->last_board) free_board(board->last_board); // adjust refcount since we're removing a reference
     board->last_board = saved_board;
@@ -1160,21 +1164,23 @@ static int num_attackers(Board *board, BitBoard target, bool defenderWhite) {
 
 // Returns valid positions from which an En Passant move can be performed on [board] by white if [white], otherwise by black
 static BitBoard en_passant_valid(Board *board, bool white) {
+    BitBoard all_horz_white = board->bb_white_queen | board->bb_white_rook;
+    BitBoard all_horz_black = board->bb_black_queen | board->bb_black_rook;
     BitBoard all_pieces_white = board->bb_white_bishop | board->bb_white_king
-        | board->bb_white_knight | board->bb_white_pawn | board->bb_white_queen
-        | board->bb_white_rook;
+        | board->bb_white_knight | board->bb_white_pawn | all_horz_white;
     BitBoard all_pieces_black = board->bb_black_bishop | board->bb_black_king
-        | board->bb_black_knight | board->bb_black_pawn | board->bb_black_queen
-        | board->bb_black_rook;
+        | board->bb_black_knight | board->bb_black_pawn | all_horz_black;
     BitBoard all_pieces = all_pieces_black | all_pieces_white;
+    BitBoard my_pawns = white ? board->bb_white_pawn : board->bb_black_pawn;
     BitBoard king_square = white ? board->bb_white_king : board->bb_black_king;
     BitBoard ept = board->en_passant_target;
-    BitBoard valid = bb_slide_e(ept) | bb_slide_w(ept);
+    BitBoard taken = white ? bb_slide_s(ept) : bb_slide_n(ept);
+    BitBoard valid = (bb_slide_e(taken) | bb_slide_w(taken)) & my_pawns;
     bool one_ept_source = (valid & (valid - 1)) == 0;
     if (!one_ept_source) return valid; // two en-passant available pawns, at least one will remain to block xrays, legal
-    BitBoard empty = ~(all_pieces & ~(ept | valid));
-    BitBoard xray = bb_blocker_e(king_square, empty) | bb_blocker_w(king_square, empty);
-    if (xray & (white ? all_pieces_black : all_pieces_white)) return 0;  // xray on en passant rank, not legal
+    BitBoard empty = ~(all_pieces ^ (ept | taken | valid)); // +new pawn, -taken pawn, -old pawn
+    BitBoard xray = bb_blocker_e(king_square, empty) | bb_blocker_w(king_square, empty); // only possible to reveal horizontal xray
+    if (xray & (white ? all_horz_black : all_horz_white)) return 0;  // xray on en passant rank, not legal
     return valid; // no xray on en passant rank, legal
 }
 
@@ -1339,7 +1345,8 @@ static int get_legal_moves_inplace(Board *board, Move *moves, size_t maxlen_move
             move_valid &= (moving_king || !double_check);  // only king moves allowed in double check
             move_valid &= ((all_opp_attacked & piecepos) == 0 || !moving_king);  // if moving king, not to attacked square
             move_valid &= (((check_attacks & ((cap_pos & ~pins_not_ns) | piecepos)) > 0 || moving_king) || !check); // single check allows king move, taking checking piece, blocking
-            move_valid &= ((!en_passant) || en_passant_valid(board, white));
+            move_valid &= ((!en_passant) || (add_move.from & en_passant_valid(board, white)));
+            //if (en_passant && !move_valid) printf("en passant move found, but invalid!\n");
             if (move_valid) {
                 add_move.capture = (piecepos & opp_pieces) > 0 || en_passant;
                 if (((piecepos & 0xff000000000000ff) > 0) && moving_pawn) {
@@ -1356,25 +1363,29 @@ static int get_legal_moves_inplace(Board *board, Move *moves, size_t maxlen_move
         }
         if (pseudo_moves[DIR_NW] & piecepos) {
             add_move.from = bb_blocker_se(piecepos, ~my_pieces);
-            //char movestr[8];
-            //dump_move(movestr, add_move);
-            //printf("testing move: %s\n", movestr);
             bool moving_king = (add_move.from & my_king) > 0;
             bool moving_pawn = (my_pawns & add_move.from) > 0;
             bool en_passant = moving_pawn && ((board->en_passant_target & piecepos) > 0);
+            /*if (en_passant) {
+                char movestr[8];
+                dump_move(movestr, add_move);
+                printf("testing move: %s\n", movestr);
+            }*/
             BitBoard cap_pos = en_passant ? bb_slide_s(piecepos) : piecepos;
             bool move_valid = (add_move.from & pins_ns) == 0 || ((bb_flood_n(add_move.from, empty, true) | bb_flood_s(add_move.from, empty, true)) & piecepos) > 0;  // not moving pinned piece
             move_valid &= (add_move.from & pins_ew) == 0 || ((bb_flood_e(add_move.from, empty, true) | bb_flood_w(add_move.from, empty, true)) & piecepos) > 0;  // not moving pinned piece
             move_valid &= (add_move.from & pins_nesw) == 0 || ((bb_flood_ne(add_move.from, empty, true) | bb_flood_sw(add_move.from, empty, true)) & piecepos) > 0;  // not moving pinned piece
             move_valid &= (add_move.from & pins_nwse) == 0 || ((bb_flood_nw(add_move.from, empty, true) | bb_flood_se(add_move.from, empty, true)) & piecepos) > 0;  // not moving pinned piece
-            //printf("valid after pin check: %s\n", move_valid ? "true" : "false");
+            //if (en_passant) printf("valid after pin check: %s\n", move_valid ? "true" : "false");
             move_valid &= (moving_king || !double_check);  // only king moves allowed in double check
-            //printf("valid after double check check: %s\n", move_valid ? "true" : "false");
+            //if (en_passant) printf("valid after double check check: %s\n", move_valid ? "true" : "false");
             move_valid &= ((all_opp_attacked & piecepos) == 0 || !moving_king);  // if moving king, not to attacked square
-            //printf("valid after king move attack squares check: %s\n", move_valid ? "true" : "false");
+            //if (en_passant) printf("valid after king move attack squares check: %s\n", move_valid ? "true" : "false");
             move_valid &= (((check_attacks & ((cap_pos & ~pins_not_ns) | piecepos)) > 0 || moving_king) || !check); // single check allows king move, taking checking piece, blocking
-            //printf("valid after single check valid move check: %s\n", move_valid ? "true" : "false");
-            move_valid &= ((!en_passant) || en_passant_valid(board, white));
+            //if (en_passant) printf("valid after single check valid move check: %s\n", move_valid ? "true" : "false");
+            move_valid &= ((!en_passant) || (add_move.from & en_passant_valid(board, white)));
+            //if (en_passant) printf("valid after en passant move check: %s\n", move_valid ? "true" : "false");
+            //if (en_passant && !move_valid) printf("en passant move found, but invalid!\n");
             if (move_valid) {
                 add_move.capture = (piecepos & opp_pieces) > 0 || en_passant;
                 if (((piecepos & 0xff000000000000ff) > 0) && moving_pawn) {
@@ -1434,7 +1445,8 @@ static int get_legal_moves_inplace(Board *board, Move *moves, size_t maxlen_move
             move_valid &= (moving_king || !double_check);  // only king moves allowed in double check
             move_valid &= ((all_opp_attacked & piecepos) == 0 || !moving_king);  // if moving king, not to attacked square
             move_valid &= (((check_attacks & ((cap_pos & ~pins_not_ns) | piecepos)) > 0 || moving_king) || !check); // single check allows king move, taking checking piece, blocking
-            move_valid &= ((!en_passant) || en_passant_valid(board, white));
+            move_valid &= ((!en_passant) || (add_move.from & en_passant_valid(board, white)));
+            //if (en_passant && !move_valid) printf("en passant move found, but invalid!\n");
             if (move_valid) {
                 add_move.capture = (piecepos & opp_pieces) > 0 || en_passant;
                 if (((piecepos & 0xff000000000000ff) > 0) && moving_pawn) {
@@ -1462,7 +1474,8 @@ static int get_legal_moves_inplace(Board *board, Move *moves, size_t maxlen_move
             move_valid &= (moving_king || !double_check);  // only king moves allowed in double check
             move_valid &= ((all_opp_attacked & piecepos) == 0 || !moving_king);  // if moving king, not to attacked square
             move_valid &= (((check_attacks & ((cap_pos & ~pins_not_ns) | piecepos)) > 0 || moving_king) || !check); // single check allows king move, taking checking piece, blocking
-            move_valid &= ((!en_passant) || en_passant_valid(board, white));
+            move_valid &= ((!en_passant) || (add_move.from & en_passant_valid(board, white)));
+            //if (en_passant && !move_valid) printf("en passant move found, but invalid!\n");
             if (move_valid) {
                 add_move.capture = (piecepos & opp_pieces) > 0 || en_passant;
                 if (((piecepos & 0xff000000000000ff) > 0) && moving_pawn) {
@@ -1661,7 +1674,7 @@ static int get_legal_moves_inplace(Board *board, Move *moves, size_t maxlen_move
         add_move.to = bb_slide_e(bb_slide_e(board->bb_white_king));
         add_to_moves(moves, &len_moves, maxlen_moves, add_move);
     }
-    if (white && board->can_castle_wq && ((all_opp_attacked & 0x000000000000001e) == 0) && ((all_pieces & 0x000000000000000e) == 0)) {
+    if (white && board->can_castle_wq && ((all_opp_attacked & 0x000000000000001c) == 0) && ((all_pieces & 0x000000000000000e) == 0)) {
         // white queenside
         add_move.capture = false;
         add_move.castle = true;
@@ -1679,7 +1692,7 @@ static int get_legal_moves_inplace(Board *board, Move *moves, size_t maxlen_move
         add_move.to = bb_slide_e(bb_slide_e(board->bb_black_king));
         add_to_moves(moves, &len_moves, maxlen_moves, add_move);
     }
-    if ((!white) && board->can_castle_bq && ((all_opp_attacked & 0x1e00000000000000) == 0) && ((all_pieces & 0x0e00000000000000) == 0)) {
+    if ((!white) && board->can_castle_bq && ((all_opp_attacked & 0x1c00000000000000) == 0) && ((all_pieces & 0x0e00000000000000) == 0)) {
         // black queenside
         add_move.capture = false;
         add_move.castle = true;
