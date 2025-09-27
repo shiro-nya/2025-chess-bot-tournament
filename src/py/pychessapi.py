@@ -69,8 +69,8 @@ class Move(Structure):
         return BitBoard(self._to)
 
     @property
-    def promotion(self) -> PieceType:
-        return PieceType(self._promotion)
+    def promotion(self) -> Optional[PieceType]:
+        return PieceType(self._promotion) if int(self._promotion) > 0 else None
 
     @property
     def castle(self) -> bool:
@@ -138,17 +138,21 @@ class Board(Structure):
     def get_bitboard(self, color: PlayerColor, piece_type: PieceType) -> BitBoard:
         return BitBoard(lib.chess_get_bitboard(byref(self), c_int(color.value), c_int(piece_type.value)))
     
-    def get_piece_from_index(self, index: int) -> PieceType:
-        return PieceType(lib.chess_get_piece_from_index(byref(self), index))
+    def get_piece_from_index(self, index: int) -> Optional[PieceType]:
+        piece_type: int = int(lib.chess_get_piece_from_index(byref(self), index))
+        return PieceType(piece_type) if piece_type > 0 else None
 
-    def get_piece_from_bitboard(self, bitboard: BitBoard) -> PieceType:
-        return PieceType(lib.chess_get_piece_from_bitboard(byref(self), _BitBoard(bitboard)))
+    def get_piece_from_bitboard(self, bitboard: BitBoard) -> Optional[PieceType]:
+        piece_type: int = int(lib.chess_get_piece_from_bitboard(byref(self), _BitBoard(bitboard)))
+        return PieceType(piece_type) if piece_type > 0 else None
 
-    def get_color_from_index(self, index: int) -> PlayerColor:
-        return PlayerColor(lib.chess_get_color_from_index(byref(self), index))
+    def get_color_from_index(self, index: int) -> Optional[PlayerColor]:
+        piece_color: int = int(lib.chess_get_color_from_index(byref(self), index))
+        return PlayerColor(piece_color) if piece_color > 0 else None
 
-    def get_color_from_bitboard(self, bitboard: BitBoard) -> PieceType:
-        return PieceType(lib.chess_get_color_from_bitboard(byref(self), _BitBoard(bitboard)))
+    def get_color_from_bitboard(self, bitboard: BitBoard) -> Optional[PlayerColor]:
+        piece_color: int = int(lib.chess_get_color_from_bitboard(byref(self), _BitBoard(bitboard)))
+        return PlayerColor(piece_color) if piece_color > 0 else None
     
     def clone(self) -> Board:
         return lib.chess_clone_board(byref(self)).contents
