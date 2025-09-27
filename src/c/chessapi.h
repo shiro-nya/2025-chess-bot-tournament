@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <stddef.h>
 #include <stdbool.h>
 #include "bitboard.h"
 
@@ -83,6 +84,16 @@ Caller must free array
 \return A pointer to the start of an array of moves
 */
 DLLEXPORT Move *chess_get_legal_moves(Board *board, int *len);
+
+//! Returns legal moves
+/*!
+If the array is smaller than available legal moves then writing will stop at array boundary but this won't affect the return value.
+\param board The board to get legal moves on
+\param moves Target array moves are written to
+\param maxlen_moves The size of the passed moves array
+\return The number of legal moves
+*/
+DLLEXPORT int chess_get_legal_moves_inplace(Board *board, Move *moves, size_t maxlen_moves);
 
 //! Returns whether it is white's turn or not
 /*!
