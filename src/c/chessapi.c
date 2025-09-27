@@ -1217,21 +1217,37 @@ static BitBoard single_check_block_tiles(Board *board, bool defenderWhite) {
     return 0;
 }
 
-// adds [move] to array [moves], automatically adjusting the max array size tracked by [maxlen_moves] as [len_moves] grows
-static Move *add_to_moves(Move *moves, size_t *len_moves, size_t *maxlen_moves, Move move) {
-    moves[*len_moves] = move;
-    (*len_moves)++;
-    //printf("new length of moves is %llu\n", *len_moves);
-    if (*len_moves == *maxlen_moves) {
-        (*maxlen_moves) *= 2;
-        return (Move*)realloc(moves, *maxlen_moves * sizeof(Move));
+// adds [move] to array [moves], making sure to not write over the boundaries.
+static void add_to_moves(Move *moves, size_t *len_moves, size_t maxlen_moves, Move move) {
+    if (*len_moves < maxlen_moves) {
+        moves[*len_moves] = move;
     }
-    return moves;
+    (*len_moves)++;
 }
 
 // Returns the fully legal moves on [board].
 // Caller responsible for freeing array.
 static Move *get_legal_moves(Board *board, int *len) {
+    // This is very likely enough to hold all moves
+    const int CONSERVATIVE_SIZE = 256;
+    
+    Move *moves = malloc(CONSERVATIVE_SIZE * sizeof(Move));
+    *len = chess_get_legal_moves_inplace(board, moves, CONSERVATIVE_SIZE);
+
+    moves = realloc(moves, *len * sizeof(Move));
+
+    if (*len > CONSERVATIVE_SIZE)
+    {
+        // Very unlikely fallback
+        *len = chess_get_legal_moves_inplace(board, moves, *len);
+    }
+
+    return moves;
+}
+
+// Returns the fully legal moves on [board].
+static int get_legal_moves_inplace(Board *board, Move *moves, size_t maxlen_moves)
+{
     bool white = is_white_turn(board);
     BitBoard my_king = white ? board->bb_white_king : board->bb_black_king;
     BitBoard *pseudo_moves = get_pseudo_legal_moves(board, is_white_turn(board), false, 0, false);
@@ -1285,8 +1301,7 @@ static Move *get_legal_moves(Board *board, int *len) {
     printf("%s\n", bitboard_dump2);*/
     // set up moves array
     size_t len_moves = 0;
-    size_t maxlen_moves = 1;
-    Move *moves = (Move *)malloc(maxlen_moves*sizeof(Move));
+    
     Move add_move;
     memset(&add_move, 0, sizeof(add_move));
     // check every target square, if it is attacked by a direction then find piece
@@ -1323,11 +1338,11 @@ static Move *get_legal_moves(Board *board, int *len) {
                     // pawn promotion
                     for (char promotion = BISHOP; promotion <= QUEEN; promotion++) {
                         add_move.promotion = promotion;
-                        moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+                        add_to_moves(moves, &len_moves, maxlen_moves, add_move);
                     }
                 } else {
                     add_move.promotion = 0;
-                    moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+                    add_to_moves(moves, &len_moves, maxlen_moves, add_move);
                 }
             }
         }
@@ -1351,11 +1366,11 @@ static Move *get_legal_moves(Board *board, int *len) {
                     // pawn promotion
                     for (char promotion = BISHOP; promotion <= QUEEN; promotion++) {
                         add_move.promotion = promotion;
-                        moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+                        add_to_moves(moves, &len_moves, maxlen_moves, add_move);
                     }
                 } else {
                     add_move.promotion = 0;
-                    moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+                    add_to_moves(moves, &len_moves, maxlen_moves, add_move);
                 }
             }
         }
@@ -1386,11 +1401,11 @@ static Move *get_legal_moves(Board *board, int *len) {
                     // pawn promotion
                     for (char promotion = BISHOP; promotion <= QUEEN; promotion++) {
                         add_move.promotion = promotion;
-                        moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+                        add_to_moves(moves, &len_moves, maxlen_moves, add_move);
                     }
                 } else {
                     add_move.promotion = 0;
-                    moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+                    add_to_moves(moves, &len_moves, maxlen_moves, add_move);
                 }
             }
         }
@@ -1418,11 +1433,11 @@ static Move *get_legal_moves(Board *board, int *len) {
                     // pawn promotion
                     for (char promotion = BISHOP; promotion <= QUEEN; promotion++) {
                         add_move.promotion = promotion;
-                        moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+                        add_to_moves(moves, &len_moves, maxlen_moves, add_move);
                     }
                 } else {
                     add_move.promotion = 0;
-                    moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+                    add_to_moves(moves, &len_moves, maxlen_moves, add_move);
                 }
             }
         }
@@ -1446,11 +1461,11 @@ static Move *get_legal_moves(Board *board, int *len) {
                     // pawn promotion
                     for (char promotion = BISHOP; promotion <= QUEEN; promotion++) {
                         add_move.promotion = promotion;
-                        moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+                        add_to_moves(moves, &len_moves, maxlen_moves, add_move);
                     }
                 } else {
                     add_move.promotion = 0;
-                    moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+                    add_to_moves(moves, &len_moves, maxlen_moves, add_move);
                 }
             }
         }
@@ -1474,11 +1489,11 @@ static Move *get_legal_moves(Board *board, int *len) {
                     // pawn promotion
                     for (char promotion = BISHOP; promotion <= QUEEN; promotion++) {
                         add_move.promotion = promotion;
-                        moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+                        add_to_moves(moves, &len_moves, maxlen_moves, add_move);
                     }
                 } else {
                     add_move.promotion = 0;
-                    moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+                    add_to_moves(moves, &len_moves, maxlen_moves, add_move);
                 }
             }
         }
@@ -1503,7 +1518,7 @@ static Move *get_legal_moves(Board *board, int *len) {
             //printf("valid after single check valid move check: %s\n", move_valid ? "true" : "false");
             if (move_valid) {
                 add_move.capture = (piecepos & opp_pieces) > 0;
-                moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+                add_to_moves(moves, &len_moves, maxlen_moves, add_move);
             }
         }
         if (pseudo_moves[DIR_W] & piecepos) {
@@ -1519,7 +1534,7 @@ static Move *get_legal_moves(Board *board, int *len) {
             move_valid &= (((check_attacks & piecepos) > 0 || moving_king) || !check); // single check allows king move, taking checking piece, blocking
             if (move_valid) {
                 add_move.capture = (piecepos & opp_pieces) > 0;
-                moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+                add_to_moves(moves, &len_moves, maxlen_moves, add_move);
             }
         }
         // NOTE: a knight can never perform a vertical or diagonal move
@@ -1536,7 +1551,7 @@ static Move *get_legal_moves(Board *board, int *len) {
             if (move_valid) {
                 add_move.capture = (piecepos & opp_pieces) > 0;
                 add_move.promotion = 0;
-                moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+                add_to_moves(moves, &len_moves, maxlen_moves, add_move);
             }
         }
         if (pseudo_moves[DIR_NEE] & piecepos) {
@@ -1550,7 +1565,7 @@ static Move *get_legal_moves(Board *board, int *len) {
             if (move_valid) {
                 add_move.capture = (piecepos & opp_pieces) > 0;
                 add_move.promotion = 0;
-                moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+                add_to_moves(moves, &len_moves, maxlen_moves, add_move);
             }
         }
         if (pseudo_moves[DIR_NNW] & piecepos) {
@@ -1564,7 +1579,7 @@ static Move *get_legal_moves(Board *board, int *len) {
             if (move_valid) {
                 add_move.capture = (piecepos & opp_pieces) > 0;
                 add_move.promotion = 0;
-                moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+                add_to_moves(moves, &len_moves, maxlen_moves, add_move);
             }
         }
         if (pseudo_moves[DIR_NWW] & piecepos) {
@@ -1578,7 +1593,7 @@ static Move *get_legal_moves(Board *board, int *len) {
             if (move_valid) {
                 add_move.capture = (piecepos & opp_pieces) > 0;
                 add_move.promotion = 0;
-                moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+                add_to_moves(moves, &len_moves, maxlen_moves, add_move);
             }
         }
         if (pseudo_moves[DIR_SSE] & piecepos) {
@@ -1592,7 +1607,7 @@ static Move *get_legal_moves(Board *board, int *len) {
             if (move_valid) {
                 add_move.capture = (piecepos & opp_pieces) > 0;
                 add_move.promotion = 0;
-                moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+                add_to_moves(moves, &len_moves, maxlen_moves, add_move);
             }
         }
         if (pseudo_moves[DIR_SEE] & piecepos) {
@@ -1606,7 +1621,7 @@ static Move *get_legal_moves(Board *board, int *len) {
             if (move_valid) {
                 add_move.capture = (piecepos & opp_pieces) > 0;
                 add_move.promotion = 0;
-                moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+                add_to_moves(moves, &len_moves, maxlen_moves, add_move);
             }
         }
         if (pseudo_moves[DIR_SSW] & piecepos) {
@@ -1620,7 +1635,7 @@ static Move *get_legal_moves(Board *board, int *len) {
             if (move_valid) {
                 add_move.capture = (piecepos & opp_pieces) > 0;
                 add_move.promotion = 0;
-                moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+                add_to_moves(moves, &len_moves, maxlen_moves, add_move);
             }
         }
         if (pseudo_moves[DIR_SWW] & piecepos) {
@@ -1634,7 +1649,7 @@ static Move *get_legal_moves(Board *board, int *len) {
             if (move_valid) {
                 add_move.capture = (piecepos & opp_pieces) > 0;
                 add_move.promotion = 0;
-                moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+                add_to_moves(moves, &len_moves, maxlen_moves, add_move);
             }
         }
         piecepos <<= 1;
@@ -1664,7 +1679,7 @@ static Move *get_legal_moves(Board *board, int *len) {
         add_move.promotion = 0;
         add_move.from = board->bb_white_king;
         add_move.to = bb_slide_e(bb_slide_e(board->bb_white_king));
-        moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+        add_to_moves(moves, &len_moves, maxlen_moves, add_move);
     }
     if (white && board->can_castle_wq && ((all_opp_attacked & 0x000000000000001e) == 0) && ((all_pieces & 0x000000000000000e) == 0)) {
         // white queenside
@@ -1673,7 +1688,7 @@ static Move *get_legal_moves(Board *board, int *len) {
         add_move.promotion = 0;
         add_move.from = board->bb_white_king;
         add_move.to = bb_slide_w(bb_slide_w(board->bb_white_king));
-        moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+        add_to_moves(moves, &len_moves, maxlen_moves, add_move);
     }
     if ((!white) && board->can_castle_bk && ((all_opp_attacked & 0x7000000000000000) == 0) && ((all_pieces & 0x6000000000000000) == 0)) {
         // black kingside
@@ -1682,7 +1697,7 @@ static Move *get_legal_moves(Board *board, int *len) {
         add_move.promotion = 0;
         add_move.from = board->bb_black_king;
         add_move.to = bb_slide_e(bb_slide_e(board->bb_black_king));
-        moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+        add_to_moves(moves, &len_moves, maxlen_moves, add_move);
     }
     if ((!white) && board->can_castle_bq && ((all_opp_attacked & 0x1e00000000000000) == 0) && ((all_pieces & 0x0e00000000000000) == 0)) {
         // black queenside
@@ -1691,14 +1706,13 @@ static Move *get_legal_moves(Board *board, int *len) {
         add_move.promotion = 0;
         add_move.from = board->bb_black_king;
         add_move.to = bb_slide_w(bb_slide_w(board->bb_black_king));
-        moves = add_to_moves(moves, &len_moves, &maxlen_moves, add_move);
+        add_to_moves(moves, &len_moves, maxlen_moves, add_move);
     }
-    // shrink array to fit
-    moves = (Move*)realloc(moves, len_moves * sizeof(Move));
-    *len = len_moves;
+
     free(pseudo_moves);
     free(opp_pseudo_moves);
-    return moves;
+
+    return len_moves;
 }
 
 // Starts the Chess API internals, and returns the interface to the bot for access.
@@ -1788,6 +1802,10 @@ Board *chess_clone_board(Board *board) {
 Move *chess_get_legal_moves(Board *board, int *len) {
     if (API == NULL) start_chess_api();
     return get_legal_moves(board, len);
+}
+int chess_get_legal_moves_inplace(Board *board, Move *moves, size_t maxlen_moves) {
+    if (API == NULL) start_chess_api();
+    return get_legal_moves_inplace(board, moves, maxlen_moves);
 }
 
 bool chess_is_white_turn(Board *board) {
