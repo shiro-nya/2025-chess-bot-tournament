@@ -1231,10 +1231,10 @@ static Move *get_legal_moves(Board *board, int *len) {
     // This is very likely enough to hold all moves
     const int CONSERVATIVE_SIZE = 256;
     
-    Move *moves = malloc(CONSERVATIVE_SIZE * sizeof(Move));
+    Move *moves = (Move*)malloc(CONSERVATIVE_SIZE * sizeof(Move));
     *len = chess_get_legal_moves_inplace(board, moves, CONSERVATIVE_SIZE);
 
-    moves = realloc(moves, *len * sizeof(Move));
+    moves = (Move*)realloc(moves, *len * sizeof(Move));
 
     if (*len > CONSERVATIVE_SIZE)
     {
@@ -1712,7 +1712,7 @@ static int get_legal_moves_inplace(Board *board, Move *moves, size_t maxlen_move
     free(pseudo_moves);
     free(opp_pseudo_moves);
 
-    return len_moves;
+    return (int)len_moves;
 }
 
 // Starts the Chess API internals, and returns the interface to the bot for access.
