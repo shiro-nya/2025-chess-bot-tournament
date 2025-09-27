@@ -264,6 +264,21 @@ This method will block until the opponent's turn has passed.
 */
 DLLEXPORT void chess_done();
 
+//! Generates a board from a FEN string
+/*!
+Caller must free the board with free_board
+\sa chess_free_board()
+\param fen A FEN string to generate the board from.
+\return The generated board
+*/
+DLLEXPORT Board* chess_board_from_fen(const char *fen);
+
+//! Get algebraic notation string for chess move
+/*!
+\param buffer The output buffer, should hold at least 7 bytes.
+\param move The move.
+*/
+DLLEXPORT void chess_dump_move(char *buffer, Move move);
 
 ///// TIME MANAGEMENT /////
 
