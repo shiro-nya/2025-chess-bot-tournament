@@ -1786,7 +1786,6 @@ Board *chess_clone_board(Board *board) {
 }
 
 Move *chess_get_legal_moves(Board *board, int *len) {
-    if (API == NULL) start_chess_api();
     return get_legal_moves(board, len);
 }
 
@@ -1822,7 +1821,6 @@ void chess_undo_move(Board *board) {
 }
 
 void chess_free_board(Board *board) {
-    if (API == NULL) start_chess_api();
     free_board(board);
 }
 
@@ -1858,6 +1856,18 @@ void chess_push(Move move)
 void chess_done() {
     if (API == NULL) start_chess_api();
     interface_done();
+}
+
+Board* chess_board_from_fen(const char *fen) {
+    Board *board = (Board*)malloc(sizeof(Board));
+    *board = {0};
+    set_board_from_fen(board, fen);
+    board->refcount = 1;
+    return board;
+}
+
+void chess_dump_move(char *buffer, Move move) {
+    dump_move(buffer, move);
 }
 
 BitBoard chess_get_bitboard(Board *board, PlayerColor color, PieceType piece_type) {
