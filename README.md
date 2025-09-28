@@ -52,6 +52,8 @@ Please read this section carefully! It outlines what is available to your bot, a
   - If it's a bug with language bindings, please reach out to the maintainer/author
   - Otherwise, create an issue here and describe your issue
     - Please include the following information: Operating system, coding language, and if applicable a PGN/FEN of the chess game where it happened (Cute Chess has a button to export this)
+- What will the tournament format be?
+  - Games will be 1 minute total, per player, with no increment. Bots may only think during their turn. Openings may be pre-played, played twice with swapped sides for fairness.
 
 ## Credits
 - Sebastian Lague, whose [video](https://www.youtube.com/watch?v=Ne40a5LkK6A) inspired this contest!
