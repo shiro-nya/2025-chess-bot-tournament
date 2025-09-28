@@ -1752,43 +1752,24 @@ static void start_chess_api() {
 
 // Returns true if a threefold repetition has occurred on [board]
 static bool is_threefold_draw(Board *board) {
-    if (API == NULL) start_chess_api();
-    // i hate everything
-    int cur_size = 0;
-    int max_size = 1;
-    Board **boards = (Board**)malloc(sizeof(Board *));
-    int *counts = (int*)malloc(sizeof(int));
-    Board *cur_board = board;
-    bool hit, found = false;
-    while (cur_board) {
-        hit = false;
-        for (int i = 0; i < cur_size; i++) {
-            if (board_equals(boards[i], cur_board)) {
-                counts[i]++;
-                hit = true;
-                if (counts[i] >= 3) {
-                    found = true;
-                }
-                break;
-            }
+    /* We only need to check if the current board is repeating 3 times (since previous repeats would have been detected earlier). */
+
+    int found_count = 1; /* This board has already been found */
+    int pawn_count = __builtin_popcount(board->bb_white_pawn | board->bb_black_pawn);
+    for (Board *b = board->last_board; b != 0 && found_count < 3; b = b->last_board)
+    {
+        int pc = __builtin_popcount(b->bb_white_pawn | b->bb_black_pawn);
+        if (pawn_count < pc) {
+            break; /* The number of pawns can never go up so once an earlier board has more pawns we can stop searching */
         }
-        if (found) break;
-        if (!hit) {
-            if (cur_size == max_size) {
-                max_size *= 2;
-                boards = (Board**)realloc(boards, max_size*sizeof(Board *));
-                counts = (int*)realloc(counts, max_size*sizeof(int));
-            }
-            boards[cur_size] = cur_board;
-            counts[cur_size] = 1;
-            cur_size++;
+
+        if (board_equals(board, b))
+        {
+            ++found_count;
         }
-        cur_board = cur_board->last_board;
     }
-    free(boards);
-    free(counts);
-    if (!found) return false;
-    return true;
+
+    return found_count >= 3;
 }
 
 // Returns GAME_NORMAL, GAME_STALEMATE or GAME_CHECKMATE based on the state on [board]
