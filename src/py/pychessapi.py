@@ -148,11 +148,11 @@ class Board(Structure):
 
     def get_color_from_index(self, index: int) -> Optional[PlayerColor]:
         piece_color: int = int(lib.chess_get_color_from_index(byref(self), index))
-        return PlayerColor(piece_color) if piece_color > 0 else None
+        return PlayerColor(piece_color) if piece_color >= 0 else None
 
     def get_color_from_bitboard(self, bitboard: BitBoard) -> Optional[PlayerColor]:
         piece_color: int = int(lib.chess_get_color_from_bitboard(byref(self), _BitBoard(bitboard)))
-        return PlayerColor(piece_color) if piece_color > 0 else None
+        return PlayerColor(piece_color) if piece_color >= 0 else None
     
     def clone(self) -> Board:
         return lib.chess_clone_board(byref(self)).contents
